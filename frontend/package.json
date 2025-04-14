@@ -86,7 +86,7 @@
   "dependencies": {
     "@onlyoffice/docspace-react": "1.0.0",
     "@pipedrive/app-extensions-sdk": "^0.10.2",
-    "axios": "^1.7.3",
+    "axios": "^1.8.4",
     "axios-retry": "^4.5.0",
     "classnames": "^2.5.1",
     "i18next": "^23.12.2",
