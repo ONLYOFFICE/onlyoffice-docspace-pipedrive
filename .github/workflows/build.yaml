@@ -20,7 +20,7 @@ on:
         required: false
 
 env:
-  BACKEND_URL: ${{ github.event.inputs.backend_url || secrets.BACKEND_URL }}
+  BACKEND_URL: ${{ github.event.inputs.backend_url || 'https://pipedrive-docspace-backend.teamlab.info' }}
   DOCKER_HUB_NAMESPACE: onlyoffice
 
 jobs:
