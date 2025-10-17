@@ -60,14 +60,14 @@ jobs:
           fi
       
       - name: Publish Image
-      uses: docker/build-push-action@v6
-      env:
-        DOCKER_BUILD_RECORD_UPLOAD: false
-      with:
-        build-args: |
-                BACKEND_URL=${{ env.BACKEND_URL }}
-        context: ${{ matrix.service }}/.
-        file: ${{ matrix.service}}/Dockerfile
-        push: true
-        platforms: linux/amd64
-        tags: ${{ env.DOCKER_HUB_NAMESPACE }}/pipedrive-docspace-${{ matrix.service }}:${{ env.APP_VERSION }}-${{ github.event.inputs.tag || env.RC_TAG }}
+        uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          build-args: |
+                  BACKEND_URL=${{ env.BACKEND_URL }}
+          context: ${{ matrix.service }}/.
+          file: ${{ matrix.service}}/Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: ${{ env.DOCKER_HUB_NAMESPACE }}/pipedrive-docspace-${{ matrix.service }}:${{ env.APP_VERSION }}-${{ github.event.inputs.tag || env.RC_TAG }}
