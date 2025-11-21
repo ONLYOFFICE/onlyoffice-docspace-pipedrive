@@ -1,0 +1,13 @@
+---
+- - :ignore
+  - netty-resolver-dns-native-macos
+  - :who:
+    :why: Apache License, Version 2.0
+    :versions: []
+    :when: 2025-11-11 07:21:45.334922900 Z
+- - :ignore
+  - netty-transport-native-epoll
+  - :who:
+    :why: Apache License, Version 2.0
+    :versions: []
+    :when: 2025-11-11 07:22:44.357597700 Z
