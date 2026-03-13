@@ -38,12 +38,12 @@ Here, you can assign **Permissions = All** to the API key or customize access by
 
 > Please note: only a user with the DocSpace Admin role is authorized to create the API key.
 
-Once done, go the ONLYOFFICE DocSpace app settings within Pipedrive, fill in the **DocSpace Service Address** and **ONLYOFFICE DocSpace API Key** fields. Click the Connect button.
+Once done, go to the ONLYOFFICE DocSpace app settings within Pipedrive, fill in the **DocSpace Service Address** and **ONLYOFFICE DocSpace API Key** fields. Click the Connect button.
 
 If the connection is successful, two buttons will appear on this page:
 
 - **Change**: ability to connect another DocSpace. The data in the current DocSpace will not be deleted.
-- **Disconnect**: completely disables the app (clearing user authorization and hooks). In this case, the connection of the Pipedrive Users group with Pipedrive will be removed. We recommended using this option only if there is a need to completely clear data in the DocSpace app.
+- **Disconnect**: completely disables the app (clearing user authorization and hooks). In this case, the connection of the Pipedrive Users group with Pipedrive will be removed. We recommend using this option only if there is a need to completely clear data in the DocSpace app.
 
 ### Authorization settings 🔑 (for all)
 
