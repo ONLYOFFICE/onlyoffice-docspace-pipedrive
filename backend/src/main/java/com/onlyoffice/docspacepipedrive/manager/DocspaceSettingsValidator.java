@@ -98,7 +98,7 @@ public class DocspaceSettingsValidator {
 
     public UUID checkApiKeyOwner(final WebClient webClient) {
         DocspaceUser docspaceUser = getUser(webClient);
-        if (!docspaceUser.getIsAdmin()) {
+        if (!docspaceUser.getIsOwner() && !docspaceUser.getIsAdmin()) {
             throw new SettingsValidationException(
                     SettingsValidationException.ErrorCode.DOCSPACE_API_KEY_OWNER_IS_NOT_ADMIN
             );
