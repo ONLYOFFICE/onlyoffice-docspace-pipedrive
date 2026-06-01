@@ -23,8 +23,10 @@ import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceApiKey;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceAuthentication;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceCSPSettings;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceFile;
+import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceFileUploadSession;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceGroup;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceMembers;
+import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspacePayload;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceResponse;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceRoom;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceRoomInvitationRequest;
@@ -41,6 +43,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -330,6 +333,37 @@ public class DocspaceClientImpl implements DocspaceClient {
                 .headers(headers -> headers.setBearerAuth(token))
                 .retrieve()
                 .toEntityFlux(DataBuffer.class)
+                .onErrorMap(WebClientResponseException.class, DocspaceWebClientResponseException::new);
+    }
+
+    public Mono<DocspacePayload<DocspaceFileUploadSession>> createFileUploadSession(
+            final Long folderId,
+            final String fileName,
+            final long fileSize,
+            final String docspaceUrl,
+            final String token
+    ) {
+        Map<String, Object> sessionRequest = new HashMap<>();
+        sessionRequest.put("fileName", fileName);
+        sessionRequest.put("fileSize", fileSize);
+        sessionRequest.put("createOn", Instant.now().toString());
+        sessionRequest.put("relativePath", "");
+        sessionRequest.put("createNewIfExist", true);
+
+        return cleanWebClient.post()
+                .uri(UriComponentsBuilder.fromUriString(docspaceUrl)
+                        .path("/api/2.0/files/{folderId}/upload/create_session")
+                        .build(folderId)
+                        .toString())
+                .headers(headers -> headers.setBearerAuth(token))
+                .bodyValue(sessionRequest)
+                .retrieve()
+                .bodyToMono(
+                        new ParameterizedTypeReference<
+                                DocspaceResponse<DocspacePayload<DocspaceFileUploadSession>>
+                                >() { }
+                )
+                .map(DocspaceResponse<DocspacePayload<DocspaceFileUploadSession>>::getResponse)
                 .onErrorMap(WebClientResponseException.class, DocspaceWebClientResponseException::new);
     }
 

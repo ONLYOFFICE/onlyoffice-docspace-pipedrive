@@ -21,8 +21,10 @@ package com.onlyoffice.docspacepipedrive.client.docspace;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceApiKey;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceCSPSettings;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceFile;
+import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceFileUploadSession;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceGroup;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceMembers;
+import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspacePayload;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceRoom;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceRoomInvitationRequest;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceRoomType;
@@ -52,4 +54,7 @@ public interface DocspaceClient {
                               List<UUID> membersToRemove);
     Mono<DocspaceFile> getFile(Long fileId, String docspaceUrl, String token);
     Mono<ResponseEntity<Flux<DataBuffer>>> downloadFile(Long fileId, String docspaceUrl, String token);
+    Mono<DocspacePayload<DocspaceFileUploadSession>> createFileUploadSession(Long folderId, String fileName,
+                                                                             long fileSize, String docspaceUrl,
+                                                                             String token);
 }
