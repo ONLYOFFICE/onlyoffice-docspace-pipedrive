@@ -19,8 +19,10 @@
 package com.onlyoffice.docspacepipedrive.web.controller;
 
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceAccountAlreadyExistsException;
+import com.onlyoffice.docspacepipedrive.exceptions.DocspaceAccountNotFoundException;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceApiKeyInvalidException;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceApiKeyNotFoundException;
+import com.onlyoffice.docspacepipedrive.exceptions.DocspaceOperationException;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceUrlNotFoundException;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceWebClientResponseException;
 import com.onlyoffice.docspacepipedrive.exceptions.PipedriveOAuth2AuthorizationException;
@@ -69,6 +71,34 @@ public class ExceptionHandlerController {
                 .body(
                         new ErrorResponse(
                                 DocspaceWebClientResponseException.class.getSimpleName(),
+                                e.getLocalizedMessage(),
+                                null
+                        )
+                );
+    }
+
+    @ExceptionHandler(DocspaceOperationException.class)
+    public ResponseEntity<ErrorResponse> docspaceOperationException(DocspaceOperationException e) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("operation", e.getOperation());
+        params.put("docspaceMessage", e.getDocspaceMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(
+                        new ErrorResponse(
+                                DocspaceOperationException.class.getSimpleName(),
+                                e.getLocalizedMessage(),
+                                params
+                        )
+                );
+    }
+
+    @ExceptionHandler(DocspaceAccountNotFoundException.class)
+    public ResponseEntity<ErrorResponse> docspaceAccountNotFoundException(DocspaceAccountNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(
+                        new ErrorResponse(
+                                DocspaceAccountNotFoundException.class.getSimpleName(),
                                 e.getLocalizedMessage(),
                                 null
                         )
