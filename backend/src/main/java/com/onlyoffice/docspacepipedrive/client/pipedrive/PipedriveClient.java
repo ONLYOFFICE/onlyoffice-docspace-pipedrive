@@ -18,6 +18,7 @@
 
 package com.onlyoffice.docspacepipedrive.client.pipedrive;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.onlyoffice.docspacepipedrive.client.pipedrive.dto.PipedriveDeal;
 import com.onlyoffice.docspacepipedrive.client.pipedrive.dto.PipedriveDealFollower;
 import com.onlyoffice.docspacepipedrive.client.pipedrive.dto.PipedriveDealFollowerEvent;
@@ -58,6 +59,31 @@ public class PipedriveClient {
 
     private final ClientService clientService;
     private final WebClient pipedriveWebClient;
+
+    public JsonNode getDeals(final Integer limit, final String cursor) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(getBaseUrl())
+                .path("/api/v2/deals");
+
+        if (limit != null) {
+            builder.queryParam("limit", limit);
+        }
+
+        if (cursor != null) {
+            builder.queryParam("cursor", cursor);
+        }
+
+        return pipedriveWebClient.get()
+                .uri(builder.build().toUri())
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .onErrorResume(WebClientResponseException.class, e -> {
+                    return Mono.error(new PipedriveWebClientResponseException(e));
+                })
+                .onErrorResume(OAuth2AuthorizationException.class, e -> {
+                    return Mono.error(new PipedriveOAuth2AuthorizationException(e));
+                })
+                .block();
+    }
 
     public PipedriveDeal getDeal(final Long id) {
         return pipedriveWebClient.get()
