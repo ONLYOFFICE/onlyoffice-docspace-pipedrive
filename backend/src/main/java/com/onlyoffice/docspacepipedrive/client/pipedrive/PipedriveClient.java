@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.onlyoffice.docspacepipedrive.client.pipedrive.dto.PipedriveDeal;
 import com.onlyoffice.docspacepipedrive.client.pipedrive.dto.PipedriveDealFollower;
 import com.onlyoffice.docspacepipedrive.client.pipedrive.dto.PipedriveDealFollowerEvent;
+import com.onlyoffice.docspacepipedrive.client.pipedrive.dto.PipedriveFile;
 import com.onlyoffice.docspacepipedrive.client.pipedrive.dto.PipedriveResponse;
 import com.onlyoffice.docspacepipedrive.client.pipedrive.dto.PipedriveUser;
 import com.onlyoffice.docspacepipedrive.client.pipedrive.dto.PipedriveUserSettings;
@@ -340,6 +341,22 @@ public class PipedriveClient {
                     return Mono.error(new PipedriveOAuth2AuthorizationException(e));
                 })
                 .block();
+    }
+
+    public Mono<PipedriveFile> getFile(final Long fileId) {
+        return pipedriveWebClient.get()
+                .uri(UriComponentsBuilder.fromUriString(getBaseUrl())
+                        .path("/v1/files/{fileId}")
+                        .build(fileId))
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<PipedriveResponse<PipedriveFile>>() { })
+                .map(PipedriveResponse<PipedriveFile>::getData)
+                .onErrorResume(WebClientResponseException.class, e -> {
+                    return Mono.error(new PipedriveWebClientResponseException(e));
+                })
+                .onErrorResume(OAuth2AuthorizationException.class, e -> {
+                    return Mono.error(new PipedriveOAuth2AuthorizationException(e));
+                });
     }
 
     private String getBaseUrl() {
