@@ -100,6 +100,35 @@ public class PipedriveClient {
                 .block();
     }
 
+    public JsonNode searchDeals(final String term, final Integer limit, final String cursor) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(getBaseUrl())
+                .path("/api/v2/deals/search");
+
+        if (term != null) {
+            builder.queryParam("term", term);
+        }
+
+        if (limit != null) {
+            builder.queryParam("limit", limit);
+        }
+
+        if (cursor != null) {
+            builder.queryParam("cursor", cursor);
+        }
+
+        return pipedriveWebClient.get()
+                .uri(builder.build().toUri())
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .onErrorResume(WebClientResponseException.class, e -> {
+                    return Mono.error(new PipedriveWebClientResponseException(e));
+                })
+                .onErrorResume(OAuth2AuthorizationException.class, e -> {
+                    return Mono.error(new PipedriveOAuth2AuthorizationException(e));
+                })
+                .block();
+    }
+
     public List<PipedriveDealFollower> getDealFollowers(final Long id) {
         List<PipedriveDealFollower> dealFollowers = new ArrayList<>();
 
