@@ -18,6 +18,7 @@
 
 package com.onlyoffice.docspacepipedrive.client.docspace;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceApiKey;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceCSPSettings;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceFile;
@@ -57,4 +58,5 @@ public interface DocspaceClient {
     Mono<DocspacePayload<DocspaceFileUploadSession>> createFileUploadSession(Long folderId, String fileName,
                                                                              long fileSize, String docspaceUrl,
                                                                              String token);
+    Mono<DocspacePayload<JsonNode>> uploadFileChunk(String sessionId, byte[] chunk, String docspaceUrl, String token);
 }

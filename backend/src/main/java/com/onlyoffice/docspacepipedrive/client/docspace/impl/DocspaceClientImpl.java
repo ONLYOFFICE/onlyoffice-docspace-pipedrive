@@ -18,6 +18,7 @@
 
 package com.onlyoffice.docspacepipedrive.client.docspace.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.onlyoffice.docspacepipedrive.client.docspace.DocspaceClient;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceApiKey;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceAuthentication;
@@ -36,7 +37,10 @@ import com.onlyoffice.docspacepipedrive.exceptions.DocspaceWebClientResponseExce
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -364,6 +368,31 @@ public class DocspaceClientImpl implements DocspaceClient {
                                 >() { }
                 )
                 .map(DocspaceResponse<DocspacePayload<DocspaceFileUploadSession>>::getResponse)
+                .onErrorMap(WebClientResponseException.class, DocspaceWebClientResponseException::new);
+    }
+
+    public Mono<DocspacePayload<JsonNode>> uploadFileChunk(final String sessionId,
+                                                           final byte[] chunk,
+                                                           final String docspaceUrl,
+                                                           final String token) {
+        MultipartBodyBuilder builder = new MultipartBodyBuilder();
+
+        builder.part("file", chunk)
+                .filename("file")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM);
+
+        return cleanWebClient.post()
+                .uri(UriComponentsBuilder.fromUriString(docspaceUrl)
+                        .path("/ChunkedUploader.ashx")
+                        .queryParam("uid", sessionId)
+                        .build()
+                        .toUriString())
+                .headers(headers -> headers.setBearerAuth(token))
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(builder.build()))
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<DocspacePayload<JsonNode>>() {
+                })
                 .onErrorMap(WebClientResponseException.class, DocspaceWebClientResponseException::new);
     }
 
