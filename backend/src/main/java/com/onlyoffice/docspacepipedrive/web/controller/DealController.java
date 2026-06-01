@@ -24,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -51,5 +52,14 @@ public class DealController {
             @RequestParam(required = false) String cursor
     ) {
         return ResponseEntity.ok(pipedriveClient.searchDeals(term, limit, cursor));
+    }
+
+    @GetMapping("/{dealId}/files")
+    public ResponseEntity<JsonNode> getDealFiles(
+            @PathVariable Long dealId,
+            @RequestParam(required = false) Integer start,
+            @RequestParam(required = false) Integer limit
+    ) {
+        return ResponseEntity.ok(pipedriveClient.getDealFiles(dealId, start, limit));
     }
 }
