@@ -27,6 +27,7 @@ import {
 
 import { AppContextProvider } from "@context/AppContext";
 import { ErrorPage } from "@pages/Error";
+import FilesPage from "@pages/Files";
 
 const SettingsPage = React.lazy(() => import("@pages/Settings"));
 const RoomPage = React.lazy(() => import("@pages/Room"));
@@ -52,6 +53,16 @@ const LazyRoutes: React.FC = () => {
             <AppContextProvider>
               <ErrorPage>
                 <RoomPage />
+              </ErrorPage>
+            </AppContextProvider>
+          }
+        />
+        <Route
+          path="files"
+          element={
+            <AppContextProvider>
+              <ErrorPage>
+                <FilesPage />
               </ErrorPage>
             </AppContextProvider>
           }
