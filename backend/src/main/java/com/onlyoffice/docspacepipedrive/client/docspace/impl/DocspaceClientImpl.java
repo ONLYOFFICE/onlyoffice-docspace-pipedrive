@@ -72,6 +72,21 @@ public class DocspaceClientImpl implements DocspaceClient {
                 .block();
     }
 
+    public void logout(final String docspaceUrl, final String token) {
+        cleanWebClient.post()
+                .uri(UriComponentsBuilder.fromUriString(docspaceUrl)
+                        .path("/api/2.0/authentication/logout")
+                        .build()
+                        .toUriString())
+                .headers(headers -> headers.setBearerAuth(token))
+                .retrieve()
+                .toBodilessEntity()
+                .onErrorResume(WebClientResponseException.class, e -> {
+                    return Mono.error(new DocspaceWebClientResponseException(e));
+                })
+                .block();
+    }
+
     public DocspaceCSPSettings getCSPSettings() {
         return authorizedWebClient.get()
                 .uri("/api/2.0/security/csp")

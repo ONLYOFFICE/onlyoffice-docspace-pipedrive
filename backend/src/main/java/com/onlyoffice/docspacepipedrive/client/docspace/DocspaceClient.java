@@ -32,6 +32,7 @@ import java.util.UUID;
 
 public interface DocspaceClient {
     String authenticate(String docspaceUrl, String userName, String passwordHash);
+    void logout(String docspaceUrl, String token);
     DocspaceCSPSettings getCSPSettings();
     DocspaceCSPSettings updateCSPSettings(List<String> domains);
     List<DocspaceApiKey> getApiKeys();
