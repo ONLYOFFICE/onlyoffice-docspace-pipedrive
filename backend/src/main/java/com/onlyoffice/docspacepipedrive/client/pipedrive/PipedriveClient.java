@@ -198,6 +198,32 @@ public class PipedriveClient {
         return followers;
     }
 
+    public JsonNode getDealFiles(final Long dealId, final Integer start,
+                                                               final Integer limit) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(getBaseUrl())
+                .path("/v1/deals/{dealId}/files");
+
+        if (start != null) {
+            builder.queryParam("start", start);
+        }
+
+        if (limit != null) {
+            builder.queryParam("limit", limit);
+        }
+
+        return pipedriveWebClient.get()
+                .uri(builder.build(dealId))
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .onErrorResume(WebClientResponseException.class, e -> {
+                    return Mono.error(new PipedriveWebClientResponseException(e));
+                })
+                .onErrorResume(OAuth2AuthorizationException.class, e -> {
+                    return Mono.error(new PipedriveOAuth2AuthorizationException(e));
+                })
+                .block();
+    }
+
     public PipedriveUser getUser() {
         return pipedriveWebClient.get()
                 .uri(UriComponentsBuilder.fromUriString(getBaseUrl())
