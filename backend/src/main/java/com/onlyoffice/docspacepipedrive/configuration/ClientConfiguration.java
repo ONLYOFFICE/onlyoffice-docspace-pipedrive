@@ -44,12 +44,12 @@ public class ClientConfiguration {
         DocspaceAuthorizationApiKeyExchangeFilterFunction docspaceAuthorizationApiKeyExchangeFilterFunction =
                 new DocspaceAuthorizationApiKeyExchangeFilterFunction(settingsService);
 
-        WebClient webClient = WebClient.builder()
+        WebClient authorizedWebClient = WebClient.builder()
                 .defaultHeaders(headers -> headers.setContentType(MediaType.APPLICATION_JSON))
                 .filter(docspaceAuthorizationApiKeyExchangeFilterFunction)
                 .build();
 
-        return new DocspaceClientImpl(webClient);
+        return new DocspaceClientImpl(authorizedWebClient);
     }
 
     @Bean

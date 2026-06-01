@@ -47,10 +47,10 @@ import java.util.UUID;
 public class DocspaceClientImpl implements DocspaceClient {
     private static final int PAGINATION_COUNT = 100;
 
-    private final WebClient webClient;
+    private final WebClient authorizedWebClient;
 
     public DocspaceCSPSettings getCSPSettings() {
-        return webClient.get()
+        return authorizedWebClient.get()
                 .uri("/api/2.0/security/csp")
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<DocspaceResponse<DocspaceCSPSettings>>() { })
@@ -65,7 +65,7 @@ public class DocspaceClientImpl implements DocspaceClient {
         Map<String, Object> map = new HashMap<>();
         map.put("domains", domains);
 
-        return webClient.post()
+        return authorizedWebClient.post()
                 .uri("/api/2.0/security/csp")
                 .bodyValue(map)
                 .retrieve()
@@ -78,7 +78,7 @@ public class DocspaceClientImpl implements DocspaceClient {
     }
 
     public List<DocspaceApiKey> getApiKeys() {
-        return webClient.get()
+        return authorizedWebClient.get()
                 .uri("api/2.0/keys")
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<DocspaceResponse<List<DocspaceApiKey>>>() { })
@@ -90,7 +90,7 @@ public class DocspaceClientImpl implements DocspaceClient {
     }
 
     public DocspaceUser getUser() {
-        return webClient.get()
+        return authorizedWebClient.get()
                 .uri("/api/2.0/people/@self")
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<DocspaceResponse<DocspaceUser>>() { })
@@ -103,7 +103,7 @@ public class DocspaceClientImpl implements DocspaceClient {
 
     @Override
     public DocspaceUser getUser(final String email) {
-        return webClient.get()
+        return authorizedWebClient.get()
                 .uri(uriBuilder -> {
                     return uriBuilder.path("/api/2.0/people/email")
                             .queryParam("email", email)
@@ -120,7 +120,7 @@ public class DocspaceClientImpl implements DocspaceClient {
 
     @Override
     public DocspaceUser getUser(final UUID id) {
-        return webClient.get()
+        return authorizedWebClient.get()
                 .uri(uriBuilder -> {
                     return uriBuilder.path("/api/2.0/people/{id}")
                             .build(id);
@@ -143,7 +143,7 @@ public class DocspaceClientImpl implements DocspaceClient {
         Integer count = PAGINATION_COUNT;
 
         while (moreItemInCollection) {
-             DocspaceResponse<List<DocspaceUser>> response = webClient.get()
+             DocspaceResponse<List<DocspaceUser>> response = authorizedWebClient.get()
                     .uri(UriComponentsBuilder.fromUriString("")
                             .path("/api/2.0/people/simple/filter")
                             .queryParam("employeeType", employeeType)
@@ -179,7 +179,7 @@ public class DocspaceClientImpl implements DocspaceClient {
         map.put("roomType", roomType);
         map.put("tags", tags);
 
-        return webClient.post()
+        return authorizedWebClient.post()
                 .uri("/api/2.0/files/rooms")
                 .bodyValue(map)
                 .retrieve()
@@ -194,7 +194,7 @@ public class DocspaceClientImpl implements DocspaceClient {
     @Override
     public DocspaceMembers shareRoom(final Long roomId,
                                      final DocspaceRoomInvitationRequest docspaceRoomInvitationRequest) {
-        return webClient.put()
+        return authorizedWebClient.put()
                 .uri(uriBuilder -> {
                     return uriBuilder.path("api/2.0/files/rooms/{roomId}/share")
                             .build(roomId);
@@ -217,7 +217,7 @@ public class DocspaceClientImpl implements DocspaceClient {
         map.put("groupManager", owner);
         map.put("members", members);
 
-        return webClient.post()
+        return authorizedWebClient.post()
                 .uri("/api/2.0/group")
                 .bodyValue(map)
                 .retrieve()
@@ -247,7 +247,7 @@ public class DocspaceClientImpl implements DocspaceClient {
             map.put("membersToRemove", membersToRemove);
         }
 
-        return webClient.put()
+        return authorizedWebClient.put()
                 .uri(uriBuilder -> {
                     return uriBuilder.path("/api/2.0/group/{groupId}")
                             .build(groupId);
