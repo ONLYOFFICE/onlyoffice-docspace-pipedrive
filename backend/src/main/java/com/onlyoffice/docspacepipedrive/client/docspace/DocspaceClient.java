@@ -27,6 +27,9 @@ import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceRoom;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceRoomInvitationRequest;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceRoomType;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceUser;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.ResponseEntity;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -48,4 +51,5 @@ public interface DocspaceClient {
     DocspaceGroup updateGroup(UUID groupId, String groupName, UUID groupManager, List<UUID> membersToAdd,
                               List<UUID> membersToRemove);
     Mono<DocspaceFile> getFile(Long fileId, String docspaceUrl, String token);
+    Mono<ResponseEntity<Flux<DataBuffer>>> downloadFile(Long fileId, String docspaceUrl, String token);
 }

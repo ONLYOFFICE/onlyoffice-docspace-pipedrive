@@ -33,9 +33,12 @@ import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceUser;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceWebClientResponseException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
@@ -311,6 +314,22 @@ public class DocspaceClientImpl implements DocspaceClient {
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<DocspaceResponse<DocspaceFile>>() { })
                 .map(DocspaceResponse<DocspaceFile>::getResponse)
+                .onErrorMap(WebClientResponseException.class, DocspaceWebClientResponseException::new);
+    }
+
+    public Mono<ResponseEntity<Flux<DataBuffer>>> downloadFile(final Long fileId,
+                                                               final String docspaceUrl,
+                                                               final String token) {
+        return cleanWebClient.get()
+                .uri(UriComponentsBuilder.fromUriString(docspaceUrl)
+                        .path("/filehandler.ashx")
+                        .queryParam("action", "download")
+                        .queryParam("fileid", fileId)
+                        .build()
+                        .toUriString())
+                .headers(headers -> headers.setBearerAuth(token))
+                .retrieve()
+                .toEntityFlux(DataBuffer.class)
                 .onErrorMap(WebClientResponseException.class, DocspaceWebClientResponseException::new);
     }
 
