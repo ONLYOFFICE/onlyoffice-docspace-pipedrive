@@ -37,10 +37,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -369,6 +372,31 @@ public class PipedriveClient {
                         .build(fileId))
                 .retrieve()
                 .toEntityFlux(DataBuffer.class)
+                .onErrorResume(WebClientResponseException.class, e -> {
+                    return Mono.error(new PipedriveWebClientResponseException(e));
+                })
+                .onErrorResume(OAuth2AuthorizationException.class, e -> {
+                    return Mono.error(new PipedriveOAuth2AuthorizationException(e));
+                });
+    }
+
+    public Mono<JsonNode> uploadFile(final Long dealId, final String fileName, final Flux<DataBuffer> file) {
+        MultipartBodyBuilder builder = new MultipartBodyBuilder();
+        builder.asyncPart("file", file, DataBuffer.class)
+                .filename(fileName)
+                .contentType(MediaType.APPLICATION_OCTET_STREAM);
+        builder.part("deal_id", dealId);
+
+        return pipedriveWebClient.post()
+                .uri(UriComponentsBuilder.fromUriString(getBaseUrl())
+                        .path("/v1/files")
+                        .build()
+                        .toUri()
+                )
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(builder.build()))
+                .retrieve()
+                .bodyToMono(JsonNode.class)
                 .onErrorResume(WebClientResponseException.class, e -> {
                     return Mono.error(new PipedriveWebClientResponseException(e));
                 })
