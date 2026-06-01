@@ -30,6 +30,7 @@ import { ErrorPage } from "@pages/Error";
 
 const SettingsPage = React.lazy(() => import("@pages/Settings"));
 const RoomPage = React.lazy(() => import("@pages/Room"));
+const FilesPage = React.lazy(() => import("@pages/Files"));
 const EditorPage = React.lazy(() => import("@pages/Editor"));
 const DocspaceOAuthCallbackPage = React.lazy(
   () => import("@pages/DocspaceOAuthCallback"),
@@ -56,6 +57,16 @@ const LazyRoutes: React.FC = () => {
             <AppContextProvider>
               <ErrorPage>
                 <RoomPage />
+              </ErrorPage>
+            </AppContextProvider>
+          }
+        />
+        <Route
+          path="files"
+          element={
+            <AppContextProvider>
+              <ErrorPage>
+                <FilesPage />
               </ErrorPage>
             </AppContextProvider>
           }
