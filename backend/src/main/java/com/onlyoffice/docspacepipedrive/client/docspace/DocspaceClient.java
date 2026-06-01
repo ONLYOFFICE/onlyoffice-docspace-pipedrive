@@ -20,12 +20,14 @@ package com.onlyoffice.docspacepipedrive.client.docspace;
 
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceApiKey;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceCSPSettings;
+import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceFile;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceGroup;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceMembers;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceRoom;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceRoomInvitationRequest;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceRoomType;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceUser;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.UUID;
@@ -45,4 +47,5 @@ public interface DocspaceClient {
     DocspaceGroup createGroup(String name, UUID owner, List<UUID> members);
     DocspaceGroup updateGroup(UUID groupId, String groupName, UUID groupManager, List<UUID> membersToAdd,
                               List<UUID> membersToRemove);
+    Mono<DocspaceFile> getFile(Long fileId, String docspaceUrl, String token);
 }

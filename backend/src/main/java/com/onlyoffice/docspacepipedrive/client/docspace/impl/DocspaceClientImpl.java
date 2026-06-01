@@ -22,6 +22,7 @@ import com.onlyoffice.docspacepipedrive.client.docspace.DocspaceClient;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceApiKey;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceAuthentication;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceCSPSettings;
+import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceFile;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceGroup;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceMembers;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceResponse;
@@ -298,6 +299,19 @@ public class DocspaceClientImpl implements DocspaceClient {
                     return Mono.error(new DocspaceWebClientResponseException(e));
                 })
                 .block();
+    }
+
+    public Mono<DocspaceFile> getFile(final Long fileId, final String docspaceUrl, final String token) {
+        return cleanWebClient.get()
+                .uri(UriComponentsBuilder.fromUriString(docspaceUrl)
+                        .path("/api/2.0/files/file/{fileId}")
+                        .build(fileId)
+                        .toString())
+                .headers(headers -> headers.setBearerAuth(token))
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<DocspaceResponse<DocspaceFile>>() { })
+                .map(DocspaceResponse<DocspaceFile>::getResponse)
+                .onErrorMap(WebClientResponseException.class, DocspaceWebClientResponseException::new);
     }
 
 }
