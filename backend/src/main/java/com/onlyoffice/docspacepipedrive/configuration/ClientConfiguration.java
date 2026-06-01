@@ -22,13 +22,16 @@ import com.onlyoffice.docspacepipedrive.client.docspace.DocspaceClient;
 import com.onlyoffice.docspacepipedrive.client.docspace.filter.DocspaceAuthorizationApiKeyExchangeFilterFunction;
 import com.onlyoffice.docspacepipedrive.client.docspace.impl.DocspaceClientImpl;
 import com.onlyoffice.docspacepipedrive.service.SettingsService;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.web.reactive.function.client.ServletOAuth2AuthorizedClientExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
 
 
 @Configuration
@@ -56,7 +59,13 @@ public class ClientConfiguration {
         servletOAuth2AuthorizedClientExchangeFilterFunction.setDefaultClientRegistrationId("pipedrive");
         servletOAuth2AuthorizedClientExchangeFilterFunction.setDefaultOAuth2AuthorizedClient(true);
 
+        HttpClient httpClient = HttpClient.create()
+                .followRedirect(true,
+                        request -> request.requestHeaders().remove(HttpHeaderNames.AUTHORIZATION)
+                );
+
         return WebClient.builder()
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .filter(servletOAuth2AuthorizedClientExchangeFilterFunction)
                 .build();
     }

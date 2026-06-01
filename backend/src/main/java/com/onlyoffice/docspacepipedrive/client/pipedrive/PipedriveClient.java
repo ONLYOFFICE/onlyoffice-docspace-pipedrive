@@ -36,12 +36,15 @@ import com.onlyoffice.docspacepipedrive.service.ClientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
@@ -351,6 +354,21 @@ public class PipedriveClient {
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<PipedriveResponse<PipedriveFile>>() { })
                 .map(PipedriveResponse<PipedriveFile>::getData)
+                .onErrorResume(WebClientResponseException.class, e -> {
+                    return Mono.error(new PipedriveWebClientResponseException(e));
+                })
+                .onErrorResume(OAuth2AuthorizationException.class, e -> {
+                    return Mono.error(new PipedriveOAuth2AuthorizationException(e));
+                });
+    }
+
+    public Mono<ResponseEntity<Flux<DataBuffer>>> downloadFile(final Long fileId) {
+        return pipedriveWebClient.get()
+                .uri(UriComponentsBuilder.fromUriString(getBaseUrl())
+                        .path("/v1/files/{fileId}/download")
+                        .build(fileId))
+                .retrieve()
+                .toEntityFlux(DataBuffer.class)
                 .onErrorResume(WebClientResponseException.class, e -> {
                     return Mono.error(new PipedriveWebClientResponseException(e));
                 })
