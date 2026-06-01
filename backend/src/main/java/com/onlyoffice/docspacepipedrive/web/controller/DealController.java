@@ -43,4 +43,13 @@ public class DealController {
     ) {
         return ResponseEntity.ok(pipedriveClient.getDeals(limit, cursor));
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<JsonNode> searchDeals(
+            @RequestParam(required = false) String term,
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) String cursor
+    ) {
+        return ResponseEntity.ok(pipedriveClient.searchDeals(term, limit, cursor));
+    }
 }
