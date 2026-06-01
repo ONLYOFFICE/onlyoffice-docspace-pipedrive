@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface DocspaceClient {
+    String authenticate(String docspaceUrl, String userName, String passwordHash);
     DocspaceCSPSettings getCSPSettings();
     DocspaceCSPSettings updateCSPSettings(List<String> domains);
     List<DocspaceApiKey> getApiKeys();

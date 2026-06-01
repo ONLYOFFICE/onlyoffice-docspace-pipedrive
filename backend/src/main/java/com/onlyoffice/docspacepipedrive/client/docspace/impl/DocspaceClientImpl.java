@@ -20,6 +20,7 @@ package com.onlyoffice.docspacepipedrive.client.docspace.impl;
 
 import com.onlyoffice.docspacepipedrive.client.docspace.DocspaceClient;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceApiKey;
+import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceAuthentication;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceCSPSettings;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceGroup;
 import com.onlyoffice.docspacepipedrive.client.docspace.dto.DocspaceMembers;
@@ -47,7 +48,29 @@ import java.util.UUID;
 public class DocspaceClientImpl implements DocspaceClient {
     private static final int PAGINATION_COUNT = 100;
 
+    private final WebClient cleanWebClient;
     private final WebClient authorizedWebClient;
+
+    public String authenticate(final String docspaceUrl, final String userName, final String passwordHash) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("userName", userName);
+        map.put("passwordHash", passwordHash);
+
+        return cleanWebClient.post()
+                .uri(UriComponentsBuilder.fromUriString(docspaceUrl)
+                        .path("/api/2.0/authentication")
+                        .build()
+                        .toUriString())
+                .bodyValue(map)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<DocspaceResponse<DocspaceAuthentication>>() { })
+                .map(DocspaceResponse<DocspaceAuthentication>::getResponse)
+                .map(DocspaceAuthentication::getToken)
+                .onErrorResume(WebClientResponseException.class, e -> {
+                    return Mono.error(new DocspaceWebClientResponseException(e));
+                })
+                .block();
+    }
 
     public DocspaceCSPSettings getCSPSettings() {
         return authorizedWebClient.get()

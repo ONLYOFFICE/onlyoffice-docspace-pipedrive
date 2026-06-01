@@ -44,12 +44,20 @@ public class ClientConfiguration {
         DocspaceAuthorizationApiKeyExchangeFilterFunction docspaceAuthorizationApiKeyExchangeFilterFunction =
                 new DocspaceAuthorizationApiKeyExchangeFilterFunction(settingsService);
 
+        HttpClient cleanHttpClient = HttpClient.create()
+                .followRedirect(true);
+
+        WebClient cleanWebClient = WebClient.builder()
+                .clientConnector(new ReactorClientHttpConnector(cleanHttpClient))
+                .defaultHeaders(headers -> headers.setContentType(MediaType.APPLICATION_JSON))
+                .build();
+
         WebClient authorizedWebClient = WebClient.builder()
                 .defaultHeaders(headers -> headers.setContentType(MediaType.APPLICATION_JSON))
                 .filter(docspaceAuthorizationApiKeyExchangeFilterFunction)
                 .build();
 
-        return new DocspaceClientImpl(authorizedWebClient);
+        return new DocspaceClientImpl(cleanWebClient, authorizedWebClient);
     }
 
     @Bean
