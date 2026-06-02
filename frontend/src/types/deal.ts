@@ -29,7 +29,7 @@ export type DealSearchItem = {
 
 export type DealFile = {
   id: number;
-  file_name: string;
+  name: string;
   file_size: number;
   file_type: string;
   url: string;

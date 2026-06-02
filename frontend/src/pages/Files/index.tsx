@@ -6,11 +6,17 @@ import { Command } from "@pipedrive/app-extensions-sdk";
 import { OnlyofficeSpinner } from "@components/spinner";
 import { DealSelector } from "@components/dealSelector/DealSelector";
 
-import { Deal } from "src/types/deal";
+import { Deal, DealFile } from "src/types/deal";
 import { getFileIdFromDownloadUrl } from "@utils/url";
-import { sendFromDocspaceToPipedrive } from "@services/files";
+import {
+  sendFromDocspaceToPipedrive,
+  sendFromPipedriveToDocspace,
+} from "@services/files";
 
 const DOCSPACE_URL = "https://aleksandrfedorov.onlyoffice.io";
+const DESTINATION_FOLDER_ID = 45930; // TODO: get actual destination folder id
+
+type SelectorMode = "deal" | "file";
 
 let sdkLoaded = false;
 let sdkLoading: Promise<void> | null = null;
@@ -39,10 +45,10 @@ function ensureSdk(): Promise<void> {
 
 const FilesPage: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
-  const [isDealSelectorOpen, setDealSelectorOpen] = React.useState(false);
-  const [selectedFileId, setSelectedFileId] = React.useState<number | null>(
+  const [selectorMode, setSelectorMode] = React.useState<SelectorMode | null>(
     null,
   );
+  const docpaceFileToSend = React.useRef<number | null>(null);
 
   const { sdk, pipedriveToken } = useContext(AppContext);
 
@@ -68,27 +74,19 @@ const FilesPage: React.FC = () => {
   };
 
   const onDownload = (file: string) => {
-    const fileId = getFileIdFromDownloadUrl(file);
-    if (fileId === null) {
-      return;
-    }
+    docpaceFileToSend.current = getFileIdFromDownloadUrl(file);
 
-    setSelectedFileId(fileId);
-    setDealSelectorOpen(true);
+    setSelectorMode("deal");
   };
 
   const handleDealSelect = async (deal: Deal) => {
-    if (selectedFileId === null) {
-      return;
-    }
-
     try {
       await sdk.execute(Command.SHOW_SNACKBAR, {
         message: "Sending file to Pipedrive...",
       });
 
       await sendFromDocspaceToPipedrive(pipedriveToken, {
-        targetId: selectedFileId,
+        targetId: docpaceFileToSend.current!,
         destinationId: deal.id,
       });
 
@@ -103,8 +101,40 @@ const FilesPage: React.FC = () => {
         message: "Could not send file to Pipedrive",
       });
     } finally {
-      setSelectedFileId(null);
+      docpaceFileToSend.current = null;
+      setSelectorMode(null);
     }
+  };
+
+  const handleFileSelect = async (file: DealFile) => {
+    try {
+      await sdk.execute(Command.SHOW_SNACKBAR, {
+        message: "Uploading file to DocSpace...",
+      });
+
+      await sendFromPipedriveToDocspace(pipedriveToken, {
+        targetId: file.id,
+        destinationId: DESTINATION_FOLDER_ID,
+      });
+
+      await sdk.execute(Command.SHOW_SNACKBAR, {
+        message: "File was successfully uploaded to DocSpace",
+      });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error("[ONLYOFFICE Files] Failed to upload file to DocSpace", e);
+
+      await sdk.execute(Command.SHOW_SNACKBAR, {
+        message: "Could not upload file to DocSpace",
+      });
+    } finally {
+      setSelectorMode(null);
+    }
+  };
+
+  const handleSelectorClose = () => {
+    setSelectorMode(null);
+    docpaceFileToSend.current = null;
   };
 
   useEffect(() => {
@@ -142,7 +172,7 @@ const FilesPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="w-full h-full flex flex-col">
+    <div className="w-full h-full flex flex-col relative">
       {loading && (
         <div className="h-full w-full flex justify-center items-center">
           <OnlyofficeSpinner />
@@ -153,14 +183,22 @@ const FilesPage: React.FC = () => {
       >
         <div id="ds-frame" />
       </div>
+      {!loading && (
+        <button
+          type="button"
+          onClick={() => setSelectorMode("file")}
+          className="absolute right-4 top-4 z-20 inline-flex h-9 items-center justify-center rounded bg-pipedrive-color-light-blue-600 px-4 text-sm font-semibold text-white shadow hover:bg-pipedrive-color-light-blue-700 focus:outline-none focus:ring-2 focus:ring-pipedrive-color-light-blue-200"
+        >
+          Import from Pipedrive
+        </button>
+      )}
       <DealSelector
-        isOpen={isDealSelectorOpen}
-        onClose={() => {
-          setSelectedFileId(null);
-          setDealSelectorOpen(false);
-        }}
+        isOpen={selectorMode !== null}
+        onClose={handleSelectorClose}
         onSelect={handleDealSelect}
+        onFileSelect={handleFileSelect}
         pipedriveToken={pipedriveToken}
+        mode={selectorMode ?? "deal"}
       />
     </div>
   );

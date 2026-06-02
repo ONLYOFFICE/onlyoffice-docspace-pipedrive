@@ -18,13 +18,16 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
+import { filesize } from "filesize";
 import Select, { InputActionMeta, SingleValue } from "react-select";
 
 import { PipedriveToken } from "@context/PipedriveToken";
-import { getDeals, searchDeals } from "@services/deal";
-import { Deal } from "src/types/deal";
+import { getDealFiles, getDeals, searchDeals } from "@services/deal";
+import { Deal, DealFile } from "src/types/deal";
 
 const MIN_SEARCH_TERM_LENGTH = 2;
+
+type DealSelectorMode = "deal" | "file";
 
 interface DealOption {
   value: number;
@@ -35,21 +38,32 @@ interface DealOption {
 interface DealSelectorProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (deal: Deal) => void | Promise<void>;
+  onSelect?: (deal: Deal) => void | Promise<void>;
+  onFileSelect?: (file: DealFile) => void | Promise<void>;
   pipedriveToken: PipedriveToken;
+  mode?: DealSelectorMode;
 }
 
 export const DealSelector: React.FC<DealSelectorProps> = ({
   isOpen,
   onClose,
   onSelect,
+  onFileSelect,
   pipedriveToken,
+  mode = "deal",
 }) => {
   const [options, setOptions] = useState<DealOption[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState("");
+  const [selectedDeal, setSelectedDeal] = useState<DealOption | null>(null);
+  const [dealFiles, setDealFiles] = useState<DealFile[]>([]);
+  const [dealFilesNextStart, setDealFilesNextStart] = useState<number | null>(
+    null,
+  );
   const [isLoading, setLoading] = useState(false);
   const [isLoadingMore, setLoadingMore] = useState(false);
+  const [isLoadingDealFiles, setLoadingDealFiles] = useState(false);
+  const [isLoadingMoreDealFiles, setLoadingMoreDealFiles] = useState(false);
   const [isSubmitting, setSubmitting] = useState(false);
   const requestIdRef = useRef(0);
   const searchTermRef = useRef("");
@@ -82,6 +96,23 @@ export const DealSelector: React.FC<DealSelectorProps> = ({
       return {
         options: mapDealsToOptions(resp.data ?? []),
         nextCursor: resp.additional_data?.next_cursor ?? null,
+      };
+    },
+    [pipedriveToken],
+  );
+
+  const loadDealFiles = useCallback(
+    async (dealId: number, start?: number) => {
+      const response = await getDealFiles(pipedriveToken, dealId, {
+        start,
+      });
+      const { pagination } = response.additional_data;
+
+      return {
+        files: response.data ?? [],
+        nextStart: pagination.more_items_in_collection
+          ? (pagination.next_start ?? pagination.start + pagination.limit)
+          : null,
       };
     },
     [pipedriveToken],
@@ -122,11 +153,47 @@ export const DealSelector: React.FC<DealSelectorProps> = ({
     setOptions([]);
     setNextCursor(null);
     setInputValue("");
+    setSelectedDeal(null);
+    setDealFiles([]);
+    setDealFilesNextStart(null);
     setSubmitting(false);
   }, [isOpen, loadFirstPage]);
 
+  const loadSelectedDealFiles = async (deal: DealOption) => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
+    setSelectedDeal(deal);
+    setInputValue("");
+    setDealFiles([]);
+    setDealFilesNextStart(null);
+    setLoadingDealFiles(true);
+
+    try {
+      const result = await loadDealFiles(deal.value);
+
+      if (requestId === requestIdRef.current) {
+        setDealFiles(result.files);
+        setDealFilesNextStart(result.nextStart);
+      }
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setLoadingDealFiles(false);
+      }
+    }
+  };
+
   const handleChange = async (option: SingleValue<DealOption>) => {
     if (!option || isSubmitting) {
+      return;
+    }
+
+    if (mode === "file") {
+      await loadSelectedDealFiles(option);
+      return;
+    }
+
+    if (!onSelect) {
       return;
     }
 
@@ -134,6 +201,21 @@ export const DealSelector: React.FC<DealSelectorProps> = ({
 
     try {
       await onSelect(option.data);
+      onClose();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleFileSelect = async (file: DealFile) => {
+    if (isSubmitting || !onFileSelect) {
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      await onFileSelect(file);
       onClose();
     } finally {
       setSubmitting(false);
@@ -177,13 +259,57 @@ export const DealSelector: React.FC<DealSelectorProps> = ({
     }
   };
 
+  const handleDealFilesScroll = async (
+    event: React.UIEvent<HTMLDivElement>,
+  ) => {
+    const target = event.currentTarget;
+    const isNearBottom =
+      target.scrollHeight - target.scrollTop - target.clientHeight < 40;
+
+    if (
+      !isNearBottom ||
+      selectedDeal === null ||
+      dealFilesNextStart === null ||
+      isLoadingMoreDealFiles ||
+      isSubmitting
+    ) {
+      return;
+    }
+
+    setLoadingMoreDealFiles(true);
+
+    try {
+      const result = await loadDealFiles(
+        selectedDeal.value,
+        dealFilesNextStart,
+      );
+
+      setDealFiles((currentFiles) => {
+        const existingIds = new Set(currentFiles.map((file) => file.id));
+        const newFiles = result.files.filter(
+          (file) => !existingIds.has(file.id),
+        );
+
+        return [...currentFiles, ...newFiles];
+      });
+      setDealFilesNextStart(result.nextStart);
+    } finally {
+      setLoadingMoreDealFiles(false);
+    }
+  };
+
+  const getFileTypeLabel = (file: DealFile) =>
+    file.file_type || file.name.split(".").pop() || "file";
+
   const getLoadingMessage = () => {
     if (isSubmitting) {
-      return "Sending file...";
+      return mode === "file" ? "Importing file..." : "Sending file...";
     }
 
     return isLoadingMore ? "Loading more deals..." : "Loading deals...";
   };
+
+  const title = mode === "file" ? "Select Pipedrive file" : "Select deal";
 
   return (
     <Dialog
@@ -197,7 +323,7 @@ export const DealSelector: React.FC<DealSelectorProps> = ({
         <DialogPanel className="w-full max-w-md rounded-lg shadow-xl bg-white dark:bg-pipedrive-color-dark-neutral-100 overflow-visible">
           <div className="flex items-center justify-between px-5 py-4 border-b border-pipedrive-color-light-divider dark:border-pipedrive-color-dark-divider-strong">
             <DialogTitle className="text-base font-bold text-pipedrive-color-light-neutral-1000 dark:text-pipedrive-color-dark-neutral-1000">
-              Select deal
+              {title}
             </DialogTitle>
             <button
               type="button"
@@ -213,13 +339,16 @@ export const DealSelector: React.FC<DealSelectorProps> = ({
           <div className="p-4">
             <Select<DealOption>
               options={options}
+              value={mode === "file" ? selectedDeal : undefined}
               inputValue={inputValue}
               isDisabled={isSubmitting}
               isLoading={isLoading || isLoadingMore || isSubmitting}
               onChange={handleChange}
               onInputChange={handleInputChange}
               onMenuScrollToBottom={handleMenuScrollToBottom}
-              placeholder="Search deals..."
+              placeholder={
+                mode === "file" ? "Select deal..." : "Search deals..."
+              }
               autoFocus
               filterOption={null}
               noOptionsMessage={() => "No open deals found"}
@@ -229,9 +358,71 @@ export const DealSelector: React.FC<DealSelectorProps> = ({
                 menuPortal: (base) => ({ ...base, zIndex: 9999 }),
               }}
             />
+            {mode === "file" && (
+              <div
+                onScroll={handleDealFilesScroll}
+                className="mt-4 max-h-[358px] overflow-y-auto border border-pipedrive-color-light-neutral-200 dark:border-pipedrive-color-dark-divider-strong"
+              >
+                {selectedDeal === null && (
+                  <div className="px-4 py-8 text-center text-sm text-pipedrive-color-light-neutral-700 dark:text-pipedrive-color-dark-neutral-700">
+                    Select a deal to see its files
+                  </div>
+                )}
+
+                {selectedDeal !== null && isLoadingDealFiles && (
+                  <div className="px-4 py-8 text-center text-sm text-pipedrive-color-light-neutral-700 dark:text-pipedrive-color-dark-neutral-700">
+                    Loading files...
+                  </div>
+                )}
+
+                {selectedDeal !== null &&
+                  !isLoadingDealFiles &&
+                  dealFiles.length === 0 && (
+                    <div className="px-4 py-8 text-center text-sm text-pipedrive-color-light-neutral-700 dark:text-pipedrive-color-dark-neutral-700">
+                      No files found for this deal
+                    </div>
+                  )}
+
+                {dealFiles.map((file) => (
+                  <div
+                    key={file.id}
+                    className="flex items-center justify-between gap-4 border-b border-pipedrive-color-light-neutral-200 px-4 py-3 last:border-b-0 dark:border-pipedrive-color-dark-divider-strong"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-pipedrive-color-light-neutral-1000 dark:text-pipedrive-color-dark-neutral-1000">
+                        {file.name}
+                      </p>
+                      <p className="text-xs text-pipedrive-color-light-neutral-700 dark:text-pipedrive-color-dark-neutral-700">
+                        {getFileTypeLabel(file)} -{" "}
+                        {filesize(file.file_size, {
+                          round: 1,
+                          standard: "jedec",
+                        })}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleFileSelect(file)}
+                      disabled={isSubmitting}
+                      className="shrink-0 text-sm font-semibold text-pipedrive-color-light-blue-600 hover:text-pipedrive-color-light-blue-700 disabled:opacity-60 dark:text-pipedrive-color-dark-blue-600"
+                    >
+                      Select
+                    </button>
+                  </div>
+                ))}
+
+                {isLoadingMoreDealFiles && (
+                  <div className="px-4 py-3 text-center text-sm text-pipedrive-color-light-neutral-700 dark:text-pipedrive-color-dark-neutral-700">
+                    Loading more files...
+                  </div>
+                )}
+              </div>
+            )}
             {isSubmitting && (
               <p className="mt-3 text-sm text-pipedrive-color-light-neutral-700 dark:text-pipedrive-color-dark-neutral-700">
-                Sending file to Pipedrive...
+                {mode === "file"
+                  ? "Uploading file to DocSpace..."
+                  : "Sending file to Pipedrive..."}
               </p>
             )}
           </div>
