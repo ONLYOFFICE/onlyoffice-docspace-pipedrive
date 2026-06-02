@@ -35,7 +35,7 @@ interface DealOption {
 interface DealSelectorProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (deal: Deal) => void;
+  onSelect: (deal: Deal) => void | Promise<void>;
   pipedriveToken: PipedriveToken;
 }
 
@@ -50,6 +50,7 @@ export const DealSelector: React.FC<DealSelectorProps> = ({
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setLoading] = useState(false);
   const [isLoadingMore, setLoadingMore] = useState(false);
+  const [isSubmitting, setSubmitting] = useState(false);
   const requestIdRef = useRef(0);
   const searchTermRef = useRef("");
 
@@ -121,12 +122,21 @@ export const DealSelector: React.FC<DealSelectorProps> = ({
     setOptions([]);
     setNextCursor(null);
     setInputValue("");
+    setSubmitting(false);
   }, [isOpen, loadFirstPage]);
 
-  const handleChange = (option: SingleValue<DealOption>) => {
-    if (option) {
-      onSelect(option.data);
+  const handleChange = async (option: SingleValue<DealOption>) => {
+    if (!option || isSubmitting) {
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      await onSelect(option.data);
       onClose();
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -142,7 +152,7 @@ export const DealSelector: React.FC<DealSelectorProps> = ({
   };
 
   const handleMenuScrollToBottom = async () => {
-    if (!nextCursor || isLoadingMore) {
+    if (!nextCursor || isLoadingMore || isSubmitting) {
       return;
     }
 
@@ -167,8 +177,20 @@ export const DealSelector: React.FC<DealSelectorProps> = ({
     }
   };
 
+  const getLoadingMessage = () => {
+    if (isSubmitting) {
+      return "Sending file...";
+    }
+
+    return isLoadingMore ? "Loading more deals..." : "Loading deals...";
+  };
+
   return (
-    <Dialog open={isOpen} onClose={onClose} className="relative z-50">
+    <Dialog
+      open={isOpen}
+      onClose={isSubmitting ? () => {} : onClose}
+      className="relative z-50"
+    >
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
 
       <div className="fixed inset-0 flex items-center justify-center p-4">
@@ -180,6 +202,7 @@ export const DealSelector: React.FC<DealSelectorProps> = ({
             <button
               type="button"
               onClick={onClose}
+              disabled={isSubmitting}
               className="text-pipedrive-color-light-neutral-600 dark:text-pipedrive-color-dark-neutral-600 hover:text-pipedrive-color-light-neutral-1000 dark:hover:text-pipedrive-color-dark-neutral-1000 text-xl leading-none"
               aria-label="Close"
             >
@@ -191,7 +214,8 @@ export const DealSelector: React.FC<DealSelectorProps> = ({
             <Select<DealOption>
               options={options}
               inputValue={inputValue}
-              isLoading={isLoading || isLoadingMore}
+              isDisabled={isSubmitting}
+              isLoading={isLoading || isLoadingMore || isSubmitting}
               onChange={handleChange}
               onInputChange={handleInputChange}
               onMenuScrollToBottom={handleMenuScrollToBottom}
@@ -199,14 +223,17 @@ export const DealSelector: React.FC<DealSelectorProps> = ({
               autoFocus
               filterOption={null}
               noOptionsMessage={() => "No open deals found"}
-              loadingMessage={() =>
-                isLoadingMore ? "Loading more deals..." : "Loading deals..."
-              }
+              loadingMessage={getLoadingMessage}
               menuPortalTarget={document.body}
               styles={{
                 menuPortal: (base) => ({ ...base, zIndex: 9999 }),
               }}
             />
+            {isSubmitting && (
+              <p className="mt-3 text-sm text-pipedrive-color-light-neutral-700 dark:text-pipedrive-color-dark-neutral-700">
+                Sending file to Pipedrive...
+              </p>
+            )}
           </div>
         </DialogPanel>
       </div>
