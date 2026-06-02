@@ -47,7 +47,9 @@ export type DealsResponse = {
 
 export type DealSearchResponse = {
   success: boolean;
-  data: DealSearchItem[];
+  data: {
+    items: DealSearchItem[];
+  };
   additional_data: {
     next_cursor: string | null;
   };
