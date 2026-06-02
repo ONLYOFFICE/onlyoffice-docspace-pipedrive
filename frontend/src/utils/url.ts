@@ -28,3 +28,10 @@ export const getCurrentURL = () => {
 
 export const stripTrailingSlash = (url: string) =>
   url.endsWith("/") ? url.slice(0, -1) : url;
+
+export const getFileIdFromDownloadUrl = (fileUrl: string) => {
+  const fileId = new URL(fileUrl).searchParams.get("fileid");
+  const parsedFileId = Number(fileId);
+
+  return Number.isFinite(parsedFileId) ? parsedFileId : null;
+};

@@ -2,12 +2,13 @@ import React, { useContext, useEffect } from "react";
 
 import { AppContext } from "@context/AppContext";
 import { Command } from "@pipedrive/app-extensions-sdk";
-import { SDKInstance } from "@onlyoffice/docspace-sdk-js/dist/types/instance";
 
 import { OnlyofficeSpinner } from "@components/spinner";
 import { DealSelector } from "@components/dealSelector/DealSelector";
 
 import { Deal } from "src/types/deal";
+import { getFileIdFromDownloadUrl } from "@utils/url";
+import { sendFromDocspaceToPipedrive } from "@services/files";
 
 const DOCSPACE_URL = "https://aleksandrfedorov.onlyoffice.io";
 
@@ -36,11 +37,12 @@ function ensureSdk(): Promise<void> {
   return sdkLoading;
 }
 
-let instance: SDKInstance | null = null;
-
 const FilesPage: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [isDealSelectorOpen, setDealSelectorOpen] = React.useState(false);
+  const [selectedFileId, setSelectedFileId] = React.useState<number | null>(
+    null,
+  );
 
   const { sdk, pipedriveToken } = useContext(AppContext);
 
@@ -65,11 +67,45 @@ const FilesPage: React.FC = () => {
     // instance.setCustomActions({ contextMenu: { file: fileActions } }); // TODO: add context menu actions when supported by the SDK
   };
 
-  const onDownload = () => {
+  const onDownload = (file: string) => {
+    const fileId = getFileIdFromDownloadUrl(file);
+    if (fileId === null) {
+      return;
+    }
+
+    setSelectedFileId(fileId);
     setDealSelectorOpen(true);
   };
 
-  const handleDealSelect = (deal: Deal) => {};
+  const handleDealSelect = async (deal: Deal) => {
+    if (selectedFileId === null) {
+      return;
+    }
+
+    try {
+      await sdk.execute(Command.SHOW_SNACKBAR, {
+        message: "Sending file to Pipedrive...",
+      });
+
+      await sendFromDocspaceToPipedrive(pipedriveToken, {
+        targetId: selectedFileId,
+        destinationId: deal.id,
+      });
+
+      await sdk.execute(Command.SHOW_SNACKBAR, {
+        message: "File was successfully sent to Pipedrive",
+      });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error("[ONLYOFFICE Files] Failed to send file to Pipedrive", e);
+
+      await sdk.execute(Command.SHOW_SNACKBAR, {
+        message: "Could not send file to Pipedrive",
+      });
+    } finally {
+      setSelectedFileId(null);
+    }
+  };
 
   useEffect(() => {
     const initFiles = () => {
@@ -77,7 +113,7 @@ const FilesPage: React.FC = () => {
       const docspaceSDK = (window as any).DocSpace?.SDK;
       if (!docspaceSDK) return;
 
-      instance = docspaceSDK.initPersonal({
+      docspaceSDK.initPersonal({
         frameId: "ds-frame",
         src: DOCSPACE_URL,
         theme: "Base",
@@ -120,6 +156,7 @@ const FilesPage: React.FC = () => {
       <DealSelector
         isOpen={isDealSelectorOpen}
         onClose={() => {
+          setSelectedFileId(null);
           setDealSelectorOpen(false);
         }}
         onSelect={handleDealSelect}
