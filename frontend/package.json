@@ -84,6 +84,7 @@
     "webpack-merge": "^6.0.1"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.10",
     "@onlyoffice/docspace-react": "^2.1.0",
     "@onlyoffice/docspace-sdk-js": "^2.0.0",
     "@pipedrive/app-extensions-sdk": "^0.10.2",
@@ -100,7 +101,8 @@
     "react-dom": "^18.3.1",
     "react-i18next": "^15.0.1",
     "react-query": "^3.39.3",
-    "react-router-dom": "^6.26.0"
+    "react-router-dom": "^6.26.0",
+    "react-select": "^5.10.2"
   },
   "overrides": {
     "pnpm": "10.14.0"
