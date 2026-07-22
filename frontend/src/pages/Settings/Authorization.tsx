@@ -1,19 +1,14 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Command, View } from "@pipedrive/app-extensions-sdk";
-import { DocSpace } from "@onlyoffice/docspace-react";
-import { TFrameConfig } from "@onlyoffice/docspace-sdk-js/dist/types/types";
-import { SDKInstance } from "@onlyoffice/docspace-sdk-js/dist/types/instance";
 
 import { ButtonColor, OnlyofficeButton } from "@components/button";
-import { OnlyofficeInput } from "@components/input";
 import { OnlyofficeTitle } from "@components/title";
 import { OnlyofficeBackgroundError } from "@layouts/ErrorBackground";
 
 import { AppContext } from "@context/AppContext";
 
 import {
-  putDocspaceAccount,
   deleteDocspaceAccount,
   getDocspaceOAuthAuthorizeUrl,
   postDocspaceOAuthCallback,
@@ -23,13 +18,10 @@ import Authorized from "@assets/authorized.svg";
 import NotAvailable from "@assets/not-available.svg";
 import Welcome from "@assets/welcome.svg";
 
-import { ErrorResponse } from "src/types/error";
 import {
   DOCSPACE_OAUTH_CALLBACK_MESSAGE_TYPE,
   DocspaceOAuthCallbackMessage,
 } from "../../types/docspace";
-
-const DOCSPACE_SYSTEM_FRAME_ID = "authorization-docspace-system-frame";
 
 export type AuthorizationSettingProps = {
   showUserGuide(): void;
@@ -41,61 +33,12 @@ export const AuthorizationSetting: React.FC<AuthorizationSettingProps> = ({
   onChangeSection,
 }) => {
   const { t } = useTranslation();
-  const {
-    user,
-    settings,
-    setSettings,
-    setUser,
-    sdk,
-    pipedriveToken,
-    reloadAppContext,
-  } = useContext(AppContext);
+  const { user, settings, setUser, sdk, pipedriveToken, reloadAppContext } =
+    useContext(AppContext);
 
-  const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [connectingOAuth, setConnectingOAuth] = useState(false);
   const oauthPopupRef = useRef<Window | null>(null);
-
-  const [email, setEmail] = useState<string | undefined>("");
-  const [isInvalidEmail, setIsInvalidEmail] = useState(false);
-  const [errorTextInvalidEmail, setErrorTextInvalidEmail] = useState("");
-
-  const [password, setPassword] = useState<string | undefined>("");
-  const [isInvalidPassword, setIsInvalidPassword] = useState(false);
-  const [errorTextInvalidPassword, setErrorTextInvalidPassword] = useState("");
-
-  let docspaceInstance: SDKInstance;
-
-  const handleLogin = async (event: React.SyntheticEvent) => {
-    event.preventDefault();
-
-    if (!email || !password) {
-      if (!email) {
-        setIsInvalidEmail(true);
-        setErrorTextInvalidEmail(
-          t("error.empty-field", "This field is required"),
-        );
-      } else {
-        setIsInvalidEmail(false);
-      }
-
-      if (!password) {
-        setIsInvalidPassword(true);
-        setErrorTextInvalidPassword(
-          t("error.empty-field", "This field is required"),
-        );
-      } else {
-        setIsInvalidPassword(false);
-      }
-
-      return;
-    }
-
-    setIsInvalidEmail(false);
-    setIsInvalidPassword(false);
-
-    setSaving(true);
-  };
 
   const handleLogout = async () => {
     const { confirmed } = await sdk.execute(Command.SHOW_CONFIRMATION, {
@@ -115,8 +58,6 @@ export const AuthorizationSetting: React.FC<AuthorizationSettingProps> = ({
     setDeleting(true);
     deleteDocspaceAccount(pipedriveToken)
       .then(async () => {
-        setEmail("");
-        setPassword("");
         if (user && settings) {
           setUser({ ...user, docspaceAccount: null });
         }
@@ -233,133 +174,6 @@ export const AuthorizationSetting: React.FC<AuthorizationSettingProps> = ({
     t,
   ]);
 
-  const onAppReady = async () => {
-    if (email && password && docspaceInstance) {
-      const loginTimeout = setTimeout(async () => {
-        await sdk.execute(Command.SHOW_SNACKBAR, {
-          message: `${t("docspace.error.login", "User authentication failed")} (Timeout)`,
-        });
-        setSaving(false);
-      }, 15000);
-
-      const hashSettings = await docspaceInstance.getHashSettings();
-      const passwordHash = (await docspaceInstance.createHash(
-        password,
-        hashSettings,
-      )) as unknown as string;
-
-      const login = (await docspaceInstance.login(email, passwordHash)) as {
-        status: number;
-      };
-
-      clearTimeout(loginTimeout);
-
-      if (login.status && login.status !== 200) {
-        setIsInvalidEmail(true);
-        setIsInvalidPassword(true);
-        setErrorTextInvalidEmail(
-          t("docspace.error.login", "User authentication failed"),
-        );
-
-        await sdk.execute(Command.SHOW_SNACKBAR, {
-          message: t(
-            "settings.authorization.unsuccessful",
-            "Invalid authorization credentials. Please check your Email and password and try to log in again.",
-          ),
-        });
-        setSaving(false);
-      } else {
-        const userInfo = (await docspaceInstance.getUserInfo()) as {
-          id: string;
-        };
-
-        putDocspaceAccount(pipedriveToken, userInfo.id, email, passwordHash)
-          .then(async () => {
-            if (user) {
-              setUser({
-                ...user,
-                docspaceAccount: {
-                  userName: email,
-                  passwordHash: "",
-                  token: null,
-                },
-              });
-            }
-
-            await sdk.execute(Command.SHOW_SNACKBAR, {
-              message: t(
-                "settings.authorization.saving.ok",
-                "ONLYOFFICE DocSpace authorization has been successfully saved",
-              ),
-            });
-            showUserGuide();
-          })
-          .catch(async (e) => {
-            const data = e?.response?.data as ErrorResponse;
-            if (
-              e?.response?.status === 503 &&
-              data?.cause === "DocspaceUrlNotFoundException"
-            ) {
-              if (settings) {
-                setSettings({
-                  ...settings,
-                  url: "",
-                });
-              }
-              return;
-            }
-
-            if (
-              e?.response?.status === 503 &&
-              data?.cause === "DocspaceApiKeyNotFoundException"
-            ) {
-              if (settings) {
-                setSettings({
-                  ...settings,
-                  apiKey: "",
-                  isApiKeyValid: false,
-                });
-              }
-              return;
-            }
-
-            if (
-              e?.response?.status === 503 &&
-              data?.cause === "DocspaceApiKeyInvalidException"
-            ) {
-              if (settings) {
-                setSettings({
-                  ...settings,
-                  isApiKeyValid: false,
-                });
-              }
-              return;
-            }
-
-            await sdk.execute(Command.SHOW_SNACKBAR, {
-              message: t(
-                "settings.authorization.saving.error",
-                "Could not save ONLYOFFICE DocSpace authorization",
-              ),
-            });
-          })
-          .finally(() => setSaving(false));
-      }
-    }
-  };
-
-  const onAppError = async () => {
-    await sdk.execute(Command.SHOW_SNACKBAR, {
-      message: t("docspace.error.loading", "Error loading ONLYOFFICE DocSpace"),
-    });
-
-    if (docspaceInstance) {
-      docspaceInstance.destroyFrame();
-    }
-
-    setSaving(false);
-  };
-
   return (
     <>
       {(!settings?.url || !settings?.apiKey) && (
@@ -460,59 +274,6 @@ export const AuthorizationSetting: React.FC<AuthorizationSettingProps> = ({
               />
             </div>
           )}
-          {!user?.docspaceAccount && (
-            <div className="max-w-[390px]">
-              <form onSubmit={handleLogin}>
-                <div className="pl-5 pr-5 pb-[14px]">
-                  <OnlyofficeInput
-                    text={t("settings.authorization.inputs.email", "Email")}
-                    placeholder={t(
-                      "settings.authorization.inputs.email",
-                      "Email",
-                    )}
-                    required
-                    valid={!isInvalidEmail}
-                    errorText={errorTextInvalidEmail}
-                    value={email}
-                    disabled={saving}
-                    onChange={(e) => setEmail(e.target.value.trim())}
-                  />
-                </div>
-                <div className="pl-5 pr-5">
-                  <OnlyofficeInput
-                    text={t(
-                      "settings.authorization.inputs.password",
-                      "Password",
-                    )}
-                    placeholder={t(
-                      "settings.authorization.inputs.password",
-                      "Password",
-                    )}
-                    required
-                    valid={!isInvalidPassword}
-                    errorText={errorTextInvalidPassword}
-                    value={password}
-                    type="password"
-                    disabled={saving}
-                    link={{
-                      text: t("button.forgot-password", "Forgot password?"),
-                      href: `${settings.url}/profile`,
-                    }}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-                <div className="flex justify-start items-center mt-6 ml-5">
-                  <OnlyofficeButton
-                    text={t("button.login", "Log in")}
-                    type="submit"
-                    color={ButtonColor.PRIMARY}
-                    loading={saving}
-                    onClick={handleLogin}
-                  />
-                </div>
-              </form>
-            </div>
-          )}
           {user?.docspaceAccount && (
             <>
               <div className="flex gap-3 mt-1 pb-2 pl-5 pr-5">
@@ -580,26 +341,6 @@ export const AuthorizationSetting: React.FC<AuthorizationSettingProps> = ({
             </>
           )}
         </>
-      )}
-      {saving && settings?.url && (
-        <div hidden>
-          <DocSpace
-            url={settings.url}
-            config={
-              {
-                frameId: DOCSPACE_SYSTEM_FRAME_ID,
-                mode: "system",
-                events: {
-                  onAppReady,
-                  onAppError,
-                } as unknown,
-              } as TFrameConfig
-            }
-            onSetDocspaceInstance={(instance) => {
-              docspaceInstance = instance;
-            }}
-          />
-        </div>
       )}
     </>
   );

@@ -47,31 +47,6 @@ export const getUser = async (pipedriveToken: PipedriveToken) => {
   return response.data;
 };
 
-export const putDocspaceAccount = async (
-  pipedriveToken: PipedriveToken,
-  id: string,
-  userName: string,
-  passwordHash: string,
-) => {
-  const token = await pipedriveToken.getValue();
-  const client = axios.create({ baseURL: process.env.BACKEND_URL });
-
-  await client({
-    method: "PUT",
-    url: `/api/v1/user/docspace-account`,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    data: {
-      id,
-      userName,
-      passwordHash,
-    },
-    timeout: 20000,
-  });
-};
-
 export const deleteDocspaceAccount = async (pipedriveToken: PipedriveToken) => {
   const token = await pipedriveToken.getValue();
   const client = axios.create({ baseURL: process.env.BACKEND_URL });
