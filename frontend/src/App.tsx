@@ -30,6 +30,9 @@ import { ErrorPage } from "@pages/Error";
 
 const SettingsPage = React.lazy(() => import("@pages/Settings"));
 const RoomPage = React.lazy(() => import("@pages/Room"));
+const DocspaceOAuthCallbackPage = React.lazy(
+  () => import("@pages/DocspaceOAuthCallback"),
+);
 
 const LazyRoutes: React.FC = () => {
   const location = useLocation();
@@ -55,6 +58,10 @@ const LazyRoutes: React.FC = () => {
               </ErrorPage>
             </AppContextProvider>
           }
+        />
+        <Route
+          path="oauth2/docspace/callback"
+          element={<DocspaceOAuthCallbackPage />}
         />
       </Route>
       <Route path="*" element={<Navigate to="/" />} />

@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Command, View } from "@pipedrive/app-extensions-sdk";
 import { DocSpace } from "@onlyoffice/docspace-react";
@@ -12,13 +12,22 @@ import { OnlyofficeBackgroundError } from "@layouts/ErrorBackground";
 
 import { AppContext } from "@context/AppContext";
 
-import { putDocspaceAccount, deleteDocspaceAccount } from "@services/user";
+import {
+  putDocspaceAccount,
+  deleteDocspaceAccount,
+  getDocspaceOAuthAuthorizeUrl,
+  postDocspaceOAuthCallback,
+} from "@services/user";
 
 import Authorized from "@assets/authorized.svg";
 import NotAvailable from "@assets/not-available.svg";
 import Welcome from "@assets/welcome.svg";
 
 import { ErrorResponse } from "src/types/error";
+import {
+  DOCSPACE_OAUTH_CALLBACK_MESSAGE_TYPE,
+  DocspaceOAuthCallbackMessage,
+} from "../../types/docspace";
 
 const DOCSPACE_SYSTEM_FRAME_ID = "authorization-docspace-system-frame";
 
@@ -44,6 +53,8 @@ export const AuthorizationSetting: React.FC<AuthorizationSettingProps> = ({
 
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [connectingOAuth, setConnectingOAuth] = useState(false);
+  const oauthPopupRef = useRef<Window | null>(null);
 
   const [email, setEmail] = useState<string | undefined>("");
   const [isInvalidEmail, setIsInvalidEmail] = useState(false);
@@ -127,6 +138,101 @@ export const AuthorizationSetting: React.FC<AuthorizationSettingProps> = ({
       .finally(() => setDeleting(false));
   };
 
+  const handleConnectOAuth = async () => {
+    setConnectingOAuth(true);
+
+    let authorizeUrl: string;
+    try {
+      authorizeUrl = await getDocspaceOAuthAuthorizeUrl(pipedriveToken);
+    } catch {
+      setConnectingOAuth(false);
+      await sdk.execute(Command.SHOW_SNACKBAR, {
+        message: t(
+          "settings.authorization.saving.error",
+          "Could not save ONLYOFFICE DocSpace authorization",
+        ),
+      });
+      return;
+    }
+
+    oauthPopupRef.current = window.open(
+      authorizeUrl,
+      "docspace-oauth",
+      "width=600,height=720",
+    );
+
+    if (!oauthPopupRef.current) {
+      setConnectingOAuth(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!connectingOAuth) {
+      return undefined;
+    }
+
+    const handleMessage = (
+      event: MessageEvent<DocspaceOAuthCallbackMessage>,
+    ) => {
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+      if (event.data?.type !== DOCSPACE_OAUTH_CALLBACK_MESSAGE_TYPE) {
+        return;
+      }
+
+      const { code, state, error } = event.data;
+      oauthPopupRef.current = null;
+
+      if (error || !code || !state) {
+        setConnectingOAuth(false);
+        return;
+      }
+
+      postDocspaceOAuthCallback(pipedriveToken, code, state)
+        .then(async () => {
+          reloadAppContext();
+          await sdk.execute(Command.SHOW_SNACKBAR, {
+            message: t(
+              "settings.authorization.saving.ok",
+              "ONLYOFFICE DocSpace authorization has been successfully saved",
+            ),
+          });
+          showUserGuide();
+        })
+        .catch(async () => {
+          await sdk.execute(Command.SHOW_SNACKBAR, {
+            message: t(
+              "settings.authorization.saving.error",
+              "Could not save ONLYOFFICE DocSpace authorization",
+            ),
+          });
+        })
+        .finally(() => setConnectingOAuth(false));
+    };
+
+    const popupClosedCheck = setInterval(() => {
+      if (oauthPopupRef.current?.closed) {
+        clearInterval(popupClosedCheck);
+        setConnectingOAuth(false);
+      }
+    }, 500);
+
+    window.addEventListener("message", handleMessage);
+
+    return () => {
+      window.removeEventListener("message", handleMessage);
+      clearInterval(popupClosedCheck);
+    };
+  }, [
+    connectingOAuth,
+    pipedriveToken,
+    reloadAppContext,
+    sdk,
+    showUserGuide,
+    t,
+  ]);
+
   const onAppReady = async () => {
     if (email && password && docspaceInstance) {
       const loginTimeout = setTimeout(async () => {
@@ -175,6 +281,7 @@ export const AuthorizationSetting: React.FC<AuthorizationSettingProps> = ({
                 docspaceAccount: {
                   userName: email,
                   passwordHash: "",
+                  token: null,
                 },
               });
             }
@@ -340,6 +447,19 @@ export const AuthorizationSetting: React.FC<AuthorizationSettingProps> = ({
               </div>
             )}
           </div>
+          {!user?.docspaceAccount && (
+            <div className="flex justify-start items-center pb-3 ml-5">
+              <OnlyofficeButton
+                text={t(
+                  "settings.authorization.oauth.connect",
+                  "Connect to DocSpace",
+                )}
+                color={ButtonColor.PRIMARY}
+                loading={connectingOAuth}
+                onClick={handleConnectOAuth}
+              />
+            </div>
+          )}
           {!user?.docspaceAccount && (
             <div className="max-w-[390px]">
               <form onSubmit={handleLogin}>

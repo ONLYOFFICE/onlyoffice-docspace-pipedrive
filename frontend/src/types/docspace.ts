@@ -21,3 +21,12 @@ export type DocspaceUser = {
   isAdmin: boolean;
   isRoomAdmin: boolean;
 };
+
+export const DOCSPACE_OAUTH_CALLBACK_MESSAGE_TYPE = "docspace-oauth-callback";
+
+export type DocspaceOAuthCallbackMessage = {
+  type: typeof DOCSPACE_OAUTH_CALLBACK_MESSAGE_TYPE;
+  code?: string;
+  state?: string;
+  error?: string;
+};

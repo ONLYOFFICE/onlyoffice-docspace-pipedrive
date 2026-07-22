@@ -86,3 +86,45 @@ export const deleteDocspaceAccount = async (pipedriveToken: PipedriveToken) => {
     timeout: 10000,
   });
 };
+
+export const getDocspaceOAuthAuthorizeUrl = async (
+  pipedriveToken: PipedriveToken,
+) => {
+  const token = await pipedriveToken.getValue();
+  const client = axios.create({ baseURL: process.env.BACKEND_URL });
+
+  const response = await client<{ authorizeUrl: string }>({
+    method: "GET",
+    url: `/api/v1/user/docspace-account/oauth2/authorize-url`,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    timeout: 15000,
+  });
+
+  return response.data.authorizeUrl;
+};
+
+export const postDocspaceOAuthCallback = async (
+  pipedriveToken: PipedriveToken,
+  code: string,
+  state: string,
+) => {
+  const token = await pipedriveToken.getValue();
+  const client = axios.create({ baseURL: process.env.BACKEND_URL });
+
+  await client({
+    method: "POST",
+    url: `/api/v1/user/docspace-account/oauth2/callback`,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    data: {
+      code,
+      state,
+    },
+    timeout: 20000,
+  });
+};
