@@ -19,12 +19,10 @@
 package com.onlyoffice.docspacepipedrive.web.controller;
 
 import com.onlyoffice.docspacepipedrive.entity.DocspaceAccount;
-import com.onlyoffice.docspacepipedrive.events.user.DocspaceLoginUserEvent;
 import com.onlyoffice.docspacepipedrive.events.user.DocspaceLogoutUserEvent;
 import com.onlyoffice.docspacepipedrive.manager.DocspaceOAuth2Manager;
 import com.onlyoffice.docspacepipedrive.security.oauth.OAuth2PipedriveUser;
 import com.onlyoffice.docspacepipedrive.service.DocspaceAccountService;
-import com.onlyoffice.docspacepipedrive.web.dto.docspaceaccount.DocspaceAccountRequest;
 import com.onlyoffice.docspacepipedrive.web.dto.docspaceaccount.DocspaceAccountResponse;
 import com.onlyoffice.docspacepipedrive.web.dto.docspaceaccount.DocspaceOAuth2AuthorizeUrlResponse;
 import com.onlyoffice.docspacepipedrive.web.dto.docspaceaccount.DocspaceOAuth2CallbackRequest;
@@ -38,14 +36,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 
 
 @RestController
@@ -70,7 +66,6 @@ public class UserController {
         if (Objects.nonNull(docspaceAccount)) {
             userResponse.put("docspaceAccount", new DocspaceAccountResponse(
                     docspaceAccount.getEmail(),
-                    docspaceAccount.getPasswordHash(),
                     Objects.nonNull(docspaceAccount.getAccessToken())
                             ? docspaceAccount.getAccessToken().getValue()
                             : null
@@ -83,27 +78,6 @@ public class UserController {
         return ResponseEntity.ok(
                 userResponse
         );
-    }
-
-    @PutMapping(path = "/docspace-account")
-    @Transactional
-    public ResponseEntity<Void> putDocspaceAccount(@AuthenticationPrincipal OAuth2PipedriveUser currentUser,
-                                                   @Valid @RequestBody DocspaceAccountRequest request) {
-        DocspaceAccount docspaceAccount = DocspaceAccount.builder()
-                .uuid(UUID.fromString(request.getId()))
-                .email(request.getUserName())
-                .passwordHash(request.getPasswordHash())
-                .build();
-
-        DocspaceAccount savedDocspaceAccount = docspaceAccountService.save(
-                currentUser.getClientId(),
-                currentUser.getUserId(),
-                docspaceAccount
-        );
-
-        eventPublisher.publishEvent(new DocspaceLoginUserEvent(this, savedDocspaceAccount));
-
-        return ResponseEntity.ok(null);
     }
 
     @GetMapping("/docspace-account/oauth2/authorize-url")

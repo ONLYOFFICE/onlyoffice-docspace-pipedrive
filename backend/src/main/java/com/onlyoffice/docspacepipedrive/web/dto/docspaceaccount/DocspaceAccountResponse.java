@@ -29,6 +29,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class DocspaceAccountResponse {
     private String userName;
-    private String passwordHash;
     private String token;
 }
