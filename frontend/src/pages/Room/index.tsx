@@ -28,6 +28,7 @@ import {
 import { AppContext, AppErrorType } from "@context/AppContext";
 
 import { deleteRoom, getRoom, postRoom } from "@services/room";
+import { getDocspaceAccountToken } from "@services/user";
 import { getCurrentURL, stripTrailingSlash } from "@utils/url";
 
 import { OnlyofficeSpinner } from "@components/spinner";
@@ -96,7 +97,7 @@ function ensureSdk(url: string): Promise<void> {
 const RoomPage: React.FC = () => {
   const { t } = useTranslation();
   const { parameters } = getCurrentURL();
-  const { sdk, pipedriveToken, user, settings, setAppError } =
+  const { sdk, pipedriveToken, user, settings, setUser, setAppError } =
     useContext(AppContext);
 
   const [loading, setLoading] = useState(true);
@@ -318,7 +319,22 @@ const RoomPage: React.FC = () => {
     }
   };
 
-  const getToken = () => user?.docspaceAccount?.token || "";
+  const onUnsuccessLogin = () => {
+    if (user) {
+      setUser({ ...user, docspaceAccount: null });
+    }
+    sdk.execute(Command.RESIZE, { height: 128 });
+    setLoading(false);
+  };
+
+  const getToken = async () => {
+    try {
+      return await getDocspaceAccountToken(pipedriveToken);
+    } catch {
+      onUnsuccessLogin();
+      return "";
+    }
+  };
 
   const getRoomDocspaceConfig = () => {
     const config = {
@@ -352,14 +368,6 @@ const RoomPage: React.FC = () => {
 
     return config;
   };
-
-  // const onUnsuccessLogin = () => {
-  //   if (user) {
-  //     setUser({ ...user, docspaceAccount: null });
-  //   }
-  //   sdk.execute(Command.RESIZE, { height: 128 });
-  //   setLoading(false);
-  // };
 
   const getCreateRoomOptions = () =>
     DOCSPACE_ROOM_TYPES.reduce((createRoomOptions, roomType) => {

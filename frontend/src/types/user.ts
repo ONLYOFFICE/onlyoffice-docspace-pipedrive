@@ -29,5 +29,4 @@ export type UserResponse = {
 
 export type DocspaceAccount = {
   userName: string;
-  token: string | null;
 };
