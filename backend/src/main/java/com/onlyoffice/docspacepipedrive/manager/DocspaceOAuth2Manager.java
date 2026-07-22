@@ -207,6 +207,15 @@ public class DocspaceOAuth2Manager {
         return refreshedAccessToken.getValue();
     }
 
+    public String getDocspaceAccountEmail(final Long clientId, final Long userId) {
+        String accessToken = getValidAccessToken(clientId, userId);
+        String docspaceUrl = getDocspaceUrl(clientId);
+
+        DocspaceUser docspaceUser = docspaceClient.getUserByAccessToken(docspaceUrl, accessToken);
+
+        return docspaceUser.getEmail();
+    }
+
     private boolean isExpiringSoon(final AccessToken accessToken) {
         if (Objects.isNull(accessToken.getExpiresAt())) {
             return false;

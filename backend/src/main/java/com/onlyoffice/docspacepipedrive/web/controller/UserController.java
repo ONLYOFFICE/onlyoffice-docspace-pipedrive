@@ -72,7 +72,6 @@ public class UserController {
             userResponse.put("docspaceAccount", null);
         }
 
-
         return ResponseEntity.ok(
                 userResponse
         );
@@ -101,6 +100,17 @@ public class UserController {
         );
 
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/docspace-account")
+    public ResponseEntity<DocspaceAccountResponse> getDocspaceAccount(
+            @AuthenticationPrincipal OAuth2PipedriveUser currentUser) {
+        String email = docspaceOAuth2Manager.getDocspaceAccountEmail(
+                currentUser.getClientId(),
+                currentUser.getUserId()
+        );
+
+        return ResponseEntity.ok(new DocspaceAccountResponse(email));
     }
 
     @GetMapping("/docspace-account/token")
