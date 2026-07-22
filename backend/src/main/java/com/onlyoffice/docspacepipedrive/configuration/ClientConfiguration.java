@@ -28,6 +28,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
+import org.springframework.security.oauth2.client.endpoint.RestClientAuthorizationCodeTokenResponseClient;
 import org.springframework.security.oauth2.client.web.reactive.function.client.ServletOAuth2AuthorizedClientExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
@@ -69,5 +72,10 @@ public class ClientConfiguration {
         return WebClient.builder()
                 .filter(servletOAuth2AuthorizedClientExchangeFilterFunction)
                 .build();
+    }
+
+    @Bean
+    OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> docspaceAccessTokenResponseClient() {
+        return new RestClientAuthorizationCodeTokenResponseClient();
     }
 }

@@ -21,6 +21,8 @@ package com.onlyoffice.docspacepipedrive.web.controller;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceAccountAlreadyExistsException;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceApiKeyInvalidException;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceApiKeyNotFoundException;
+import com.onlyoffice.docspacepipedrive.exceptions.DocspaceOAuth2AuthorizationException;
+import com.onlyoffice.docspacepipedrive.exceptions.DocspaceOAuth2StateException;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceUrlNotFoundException;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceWebClientResponseException;
 import com.onlyoffice.docspacepipedrive.exceptions.PipedriveOAuth2AuthorizationException;
@@ -135,6 +137,31 @@ public class ExceptionHandlerController {
                 .body(
                         new ErrorResponse(
                                 DocspaceApiKeyInvalidException.class.getSimpleName(),
+                                e.getLocalizedMessage(),
+                                null
+                        )
+                );
+    }
+
+    @ExceptionHandler(DocspaceOAuth2StateException.class)
+    public ResponseEntity<ErrorResponse> docspaceOAuth2StateException(DocspaceOAuth2StateException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(
+                        new ErrorResponse(
+                                DocspaceOAuth2StateException.class.getSimpleName(),
+                                e.getLocalizedMessage(),
+                                null
+                        )
+                );
+    }
+
+    @ExceptionHandler(DocspaceOAuth2AuthorizationException.class)
+    public ResponseEntity<ErrorResponse> docspaceOAuth2AuthorizationException(
+            DocspaceOAuth2AuthorizationException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(
+                        new ErrorResponse(
+                                DocspaceOAuth2AuthorizationException.class.getSimpleName(),
                                 e.getLocalizedMessage(),
                                 null
                         )

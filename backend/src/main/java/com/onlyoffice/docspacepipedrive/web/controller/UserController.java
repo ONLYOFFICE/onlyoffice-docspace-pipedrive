@@ -21,10 +21,13 @@ package com.onlyoffice.docspacepipedrive.web.controller;
 import com.onlyoffice.docspacepipedrive.entity.DocspaceAccount;
 import com.onlyoffice.docspacepipedrive.events.user.DocspaceLoginUserEvent;
 import com.onlyoffice.docspacepipedrive.events.user.DocspaceLogoutUserEvent;
+import com.onlyoffice.docspacepipedrive.manager.DocspaceOAuth2Manager;
 import com.onlyoffice.docspacepipedrive.security.oauth.OAuth2PipedriveUser;
 import com.onlyoffice.docspacepipedrive.service.DocspaceAccountService;
 import com.onlyoffice.docspacepipedrive.web.dto.docspaceaccount.DocspaceAccountRequest;
 import com.onlyoffice.docspacepipedrive.web.dto.docspaceaccount.DocspaceAccountResponse;
+import com.onlyoffice.docspacepipedrive.web.dto.docspaceaccount.DocspaceOAuth2AuthorizeUrlResponse;
+import com.onlyoffice.docspacepipedrive.web.dto.docspaceaccount.DocspaceOAuth2CallbackRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -34,6 +37,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -49,6 +53,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserController {
     private final DocspaceAccountService docspaceAccountService;
+    private final DocspaceOAuth2Manager docspaceOAuth2Manager;
     private final ApplicationEventPublisher eventPublisher;
 
     @GetMapping
@@ -99,6 +104,31 @@ public class UserController {
         eventPublisher.publishEvent(new DocspaceLoginUserEvent(this, savedDocspaceAccount));
 
         return ResponseEntity.ok(null);
+    }
+
+    @GetMapping("/docspace-account/oauth2/authorize-url")
+    public ResponseEntity<DocspaceOAuth2AuthorizeUrlResponse> getDocspaceOAuth2AuthorizeUrl(
+            @AuthenticationPrincipal OAuth2PipedriveUser currentUser) {
+        String authorizeUrl = docspaceOAuth2Manager.buildAuthorizeUrl(
+                currentUser.getClientId(),
+                currentUser.getUserId()
+        );
+
+        return ResponseEntity.ok(new DocspaceOAuth2AuthorizeUrlResponse(authorizeUrl));
+    }
+
+    @PostMapping("/docspace-account/oauth2/callback")
+    @Transactional
+    public ResponseEntity<Void> postDocspaceOAuth2Callback(@AuthenticationPrincipal OAuth2PipedriveUser currentUser,
+                                                            @Valid @RequestBody DocspaceOAuth2CallbackRequest request) {
+        docspaceOAuth2Manager.handleCallback(
+                currentUser.getClientId(),
+                currentUser.getUserId(),
+                request.getCode(),
+                request.getState()
+        );
+
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/docspace-account")

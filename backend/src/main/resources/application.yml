@@ -1,6 +1,10 @@
 app:
   base-url: ${BASE_URL}
   frontend-url: ${FRONTEND_URL}
+  docspace-client-id: ${DOCSPACE_CLIENT_ID}
+  docspace-client-secret: ${DOCSPACE_CLIENT_SECRET}
+  docspace-oauth-redirect-uri: ${DOCSPACE_OAUTH_REDIRECT_URI:${FRONTEND_URL}/oauth2/docspace/callback}
+  docspace-oauth-state-ttl: PT10M
 
 pipedrive:
   base-url: https://app.pipedrive.com

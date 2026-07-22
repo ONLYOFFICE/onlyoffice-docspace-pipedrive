@@ -1,6 +1,10 @@
 app:
   base-url: http://localhost:8080/
   frontend-url: http://localhost:3000/
+  docspace-client-id: docspace-client-id-for-test
+  docspace-client-secret: docspace-client-secret-for-test
+  docspace-oauth-redirect-uri: http://localhost:3000/oauth2/docspace/callback
+  docspace-oauth-state-ttl: PT10M
 
 pipedrive:
   base-url: https://app.pipedrive.com
