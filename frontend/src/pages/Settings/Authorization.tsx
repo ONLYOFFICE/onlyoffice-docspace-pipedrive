@@ -1,15 +1,18 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AxiosError } from "axios";
 import { Command, View } from "@pipedrive/app-extensions-sdk";
 
 import { ButtonColor, OnlyofficeButton } from "@components/button";
+import { OnlyofficeSpinner } from "@components/spinner";
 import { OnlyofficeTitle } from "@components/title";
 import { OnlyofficeBackgroundError } from "@layouts/ErrorBackground";
 
-import { AppContext } from "@context/AppContext";
+import { AppContext, AppErrorType } from "@context/AppContext";
 
 import {
   deleteDocspaceAccount,
+  getDocspaceAccount,
   getDocspaceOAuthAuthorizeUrl,
   postDocspaceOAuthCallback,
 } from "@services/user";
@@ -33,12 +36,44 @@ export const AuthorizationSetting: React.FC<AuthorizationSettingProps> = ({
   onChangeSection,
 }) => {
   const { t } = useTranslation();
-  const { user, settings, setUser, sdk, pipedriveToken, reloadAppContext } =
+  const { user, settings, sdk, pipedriveToken, reloadAppContext, setAppError } =
     useContext(AppContext);
 
   const [deleting, setDeleting] = useState(false);
   const [connectingOAuth, setConnectingOAuth] = useState(false);
+  const [checkingDocspaceAccount, setCheckingDocspaceAccount] = useState(true);
+  const [docspaceAccountEmail, setDocspaceAccountEmail] = useState<
+    string | null
+  >(null);
   const oauthPopupRef = useRef<Window | null>(null);
+
+  const fetchDocspaceAccount = async () => {
+    try {
+      const email = await getDocspaceAccount(pipedriveToken);
+      setDocspaceAccountEmail(email);
+    } catch (e) {
+      if ((e as AxiosError)?.response?.status === 401) {
+        setAppError(AppErrorType.TOKEN_ERROR);
+      }
+      setDocspaceAccountEmail(null);
+    }
+  };
+
+  useEffect(() => {
+    if (!settings?.url || !settings?.apiKey || !settings?.isApiKeyValid) {
+      setCheckingDocspaceAccount(false);
+      return;
+    }
+
+    setCheckingDocspaceAccount(true);
+    fetchDocspaceAccount().finally(() => setCheckingDocspaceAccount(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    settings?.url,
+    settings?.apiKey,
+    settings?.isApiKeyValid,
+    pipedriveToken,
+  ]);
 
   const handleLogout = async () => {
     const { confirmed } = await sdk.execute(Command.SHOW_CONFIRMATION, {
@@ -58,9 +93,7 @@ export const AuthorizationSetting: React.FC<AuthorizationSettingProps> = ({
     setDeleting(true);
     deleteDocspaceAccount(pipedriveToken)
       .then(async () => {
-        if (user && settings) {
-          setUser({ ...user, docspaceAccount: null });
-        }
+        setDocspaceAccountEmail(null);
         await sdk.execute(Command.SHOW_SNACKBAR, {
           message: t(
             "settings.authorization.deleting.ok",
@@ -132,7 +165,7 @@ export const AuthorizationSetting: React.FC<AuthorizationSettingProps> = ({
 
       postDocspaceOAuthCallback(pipedriveToken, code, state)
         .then(async () => {
-          reloadAppContext();
+          await fetchDocspaceAccount();
           await sdk.execute(Command.SHOW_SNACKBAR, {
             message: t(
               "settings.authorization.saving.ok",
@@ -165,14 +198,8 @@ export const AuthorizationSetting: React.FC<AuthorizationSettingProps> = ({
       window.removeEventListener("message", handleMessage);
       clearInterval(popupClosedCheck);
     };
-  }, [
-    connectingOAuth,
-    pipedriveToken,
-    reloadAppContext,
-    sdk,
-    showUserGuide,
-    t,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connectingOAuth, pipedriveToken, sdk, showUserGuide, t]);
 
   return (
     <>
@@ -240,41 +267,50 @@ export const AuthorizationSetting: React.FC<AuthorizationSettingProps> = ({
       )}
       {settings?.url && settings?.apiKey && settings?.isApiKeyValid && (
         <>
-          <div className="flex flex-col items-start pl-5 pr-5 pt-5 pb-3">
-            <div className="pb-2">
-              <OnlyofficeTitle
-                text={t(
-                  "settings.authorization.title",
-                  "Log into your connected ONLYOFFICE DocSpace to start using it within Pipedrive",
-                )}
-              />
-            </div>
-            {!user?.docspaceAccount && (
-              <div className="pt-3 pb-2">
-                {t(
-                  "settings.authorization.subtitle.address",
-                  "Your connected DocSpace address is",
-                )}{" "}
-                <span className="font-semibold text-pipedrive-color-light-green-600 dark:text-pipedrive-color-dark-green-600">
-                  {settings.url}
-                </span>
-              </div>
-            )}
-          </div>
-          {!user?.docspaceAccount && (
-            <div className="flex justify-start items-center pb-3 ml-5">
-              <OnlyofficeButton
-                text={t(
-                  "settings.authorization.oauth.connect",
-                  "Connect to DocSpace",
-                )}
-                color={ButtonColor.PRIMARY}
-                loading={connectingOAuth}
-                onClick={handleConnectOAuth}
-              />
+          {checkingDocspaceAccount && (
+            <div className="h-full w-full flex justify-center items-center">
+              <OnlyofficeSpinner />
             </div>
           )}
-          {user?.docspaceAccount && (
+          {!checkingDocspaceAccount && (
+            <>
+              <div className="flex flex-col items-start pl-5 pr-5 pt-5 pb-3">
+                <div className="pb-2">
+                  <OnlyofficeTitle
+                    text={t(
+                      "settings.authorization.title",
+                      "Log into your connected ONLYOFFICE DocSpace to start using it within Pipedrive",
+                    )}
+                  />
+                </div>
+                {!docspaceAccountEmail && (
+                  <div className="pt-3 pb-2">
+                    {t(
+                      "settings.authorization.subtitle.address",
+                      "Your connected DocSpace address is",
+                    )}{" "}
+                    <span className="font-semibold text-pipedrive-color-light-green-600 dark:text-pipedrive-color-dark-green-600">
+                      {settings.url}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {!docspaceAccountEmail && (
+                <div className="flex justify-start items-center pb-3 ml-5">
+                  <OnlyofficeButton
+                    text={t(
+                      "settings.authorization.oauth.connect",
+                      "Connect to DocSpace",
+                    )}
+                    color={ButtonColor.PRIMARY}
+                    loading={connectingOAuth}
+                    onClick={handleConnectOAuth}
+                  />
+                </div>
+              )}
+            </>
+          )}
+          {!checkingDocspaceAccount && docspaceAccountEmail && (
             <>
               <div className="flex gap-3 mt-1 pb-2 pl-5 pr-5">
                 <div>
@@ -287,7 +323,7 @@ export const AuthorizationSetting: React.FC<AuthorizationSettingProps> = ({
                       "You have successfully logged in to your ONLYOFFICE DocSpace account",
                     )}{" "}
                     <span className="font-semibold text-pipedrive-color-light-green-600 dark:text-pipedrive-color-dark-green-600">
-                      {user.docspaceAccount.userName}
+                      {docspaceAccountEmail}
                     </span>
                   </p>
                 </div>

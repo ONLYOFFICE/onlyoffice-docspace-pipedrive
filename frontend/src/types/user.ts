@@ -24,9 +24,4 @@ export type UserResponse = {
     country_code: string;
     language_code: string;
   };
-  docspaceAccount: DocspaceAccount | null;
-};
-
-export type DocspaceAccount = {
-  userName: string;
 };

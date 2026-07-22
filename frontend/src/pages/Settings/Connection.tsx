@@ -45,15 +45,8 @@ export const ConnectionSettings: React.FC<ConnectionSettingsProps> = ({
   onChangeSection,
 }) => {
   const { t } = useTranslation();
-  const {
-    user,
-    setUser,
-    settings,
-    setSettings,
-    sdk,
-    pipedriveToken,
-    reloadAppContext,
-  } = useContext(AppContext);
+  const { settings, setSettings, sdk, pipedriveToken, reloadAppContext } =
+    useContext(AppContext);
 
   const [url, setUrl] = useState<string>(settings?.url || "https://");
   const [isInvalidUrl, setIsInvalidUrl] = useState(false);
@@ -244,9 +237,6 @@ export const ConnectionSettings: React.FC<ConnectionSettingsProps> = ({
             ),
           });
           setSettings(undefined);
-          if (user) {
-            setUser({ ...user, docspaceAccount: null });
-          }
 
           setUrl("");
           setIsDisabledUrlInput(false);

@@ -104,6 +104,23 @@ export const postDocspaceOAuthCallback = async (
   });
 };
 
+export const getDocspaceAccount = async (pipedriveToken: PipedriveToken) => {
+  const token = await pipedriveToken.getValue();
+  const client = axios.create({ baseURL: process.env.BACKEND_URL });
+
+  const response = await client<{ userName: string }>({
+    method: "GET",
+    url: `/api/v1/user/docspace-account`,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    timeout: 15000,
+  });
+
+  return response.data.userName;
+};
+
 export const getDocspaceAccountToken = async (
   pipedriveToken: PipedriveToken,
 ) => {
