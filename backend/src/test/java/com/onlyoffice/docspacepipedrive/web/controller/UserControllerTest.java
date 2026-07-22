@@ -20,7 +20,6 @@ package com.onlyoffice.docspacepipedrive.web.controller;
 
 import com.onlyoffice.docspacepipedrive.AbstractControllerTest;
 import com.onlyoffice.docspacepipedrive.client.pipedrive.dto.PipedriveUser;
-import com.onlyoffice.docspacepipedrive.web.dto.docspaceaccount.DocspaceAccountResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
@@ -55,10 +54,7 @@ public class UserControllerTest extends AbstractControllerTest {
                     "id", 10000,
                     "name", "Test User 10000",
                     "isAdmin", true,
-                    "language", new PipedriveUser.Language("en", "US"),
-                    "docspaceAccount", new DocspaceAccountResponse(
-                            testDocspaceAccount.getEmail()
-                        )
+                    "language", new PipedriveUser.Language("en", "US")
                     )
                 ), Map.class
         );

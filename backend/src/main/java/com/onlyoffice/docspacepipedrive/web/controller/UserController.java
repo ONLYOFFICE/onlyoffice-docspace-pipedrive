@@ -55,22 +55,10 @@ public class UserController {
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> getUser(@AuthenticationPrincipal OAuth2PipedriveUser currentUser) {
-        DocspaceAccount docspaceAccount = docspaceAccountService.findByClientIdAndUserId(
-                currentUser.getClientId(),
-                currentUser.getUserId()
-        );
-
         Map<String, Object> userResponse = currentUser.getAttributes();
         userResponse.put("isAdmin", currentUser.getAuthorities().contains(
                 new SimpleGrantedAuthority("DEAL_ADMIN")
         ));
-        if (Objects.nonNull(docspaceAccount)) {
-            userResponse.put("docspaceAccount", new DocspaceAccountResponse(
-                    docspaceAccount.getEmail()
-            ));
-        } else {
-            userResponse.put("docspaceAccount", null);
-        }
 
         return ResponseEntity.ok(
                 userResponse
