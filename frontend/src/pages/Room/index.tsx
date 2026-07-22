@@ -19,6 +19,7 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import i18next from "i18next";
 import { useTranslation } from "react-i18next";
+import { AxiosError } from "axios";
 import { Color, Command, View } from "@pipedrive/app-extensions-sdk";
 import {
   TFrameConfig,
@@ -97,11 +98,11 @@ function ensureSdk(url: string): Promise<void> {
 const RoomPage: React.FC = () => {
   const { t } = useTranslation();
   const { parameters } = getCurrentURL();
-  const { sdk, pipedriveToken, user, settings, setUser, setAppError } =
-    useContext(AppContext);
+  const { sdk, pipedriveToken, settings, setAppError } = useContext(AppContext);
 
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [docspaceAuthorized, setDocspaceAuthorized] = useState(true);
   const [loadDocspace, setLoadDocspace] = useState(false);
   const [showDocspaceWindow, setShowDocspaceWindow] = useState(false);
   const [room, setRoom] = useState<RoomResponse | null>(null);
@@ -109,12 +110,6 @@ const RoomPage: React.FC = () => {
   const docspaceInstance = useRef<SDKInstance | null>(null);
 
   useEffect(() => {
-    if (!user?.docspaceAccount) {
-      sdk.execute(Command.RESIZE, { height: 128 });
-      setLoading(false);
-      return;
-    }
-
     getRoom(pipedriveToken, Number(parameters.get("selectedIds")))
       .then(async (data) => {
         setRoom(data);
@@ -320,9 +315,7 @@ const RoomPage: React.FC = () => {
   };
 
   const onUnsuccessLogin = () => {
-    if (user) {
-      setUser({ ...user, docspaceAccount: null });
-    }
+    setDocspaceAuthorized(false);
     sdk.execute(Command.RESIZE, { height: 128 });
     setLoading(false);
   };
@@ -330,8 +323,12 @@ const RoomPage: React.FC = () => {
   const getToken = async () => {
     try {
       return await getDocspaceAccountToken(pipedriveToken);
-    } catch {
-      onUnsuccessLogin();
+    } catch (e) {
+      if ((e as AxiosError)?.response?.status === 401) {
+        setAppError(AppErrorType.TOKEN_ERROR);
+      } else {
+        onUnsuccessLogin();
+      }
       return "";
     }
   };
@@ -388,7 +385,7 @@ const RoomPage: React.FC = () => {
 
     ensureSdk(settings.url)
       .then(() => {
-        if (loadDocspace && user && settings?.url && user?.docspaceAccount) {
+        if (loadDocspace) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const docspaceSDK = (window as any).DocSpace?.SDK;
           if (!docspaceSDK) return;
@@ -403,7 +400,7 @@ const RoomPage: React.FC = () => {
         // eslint-disable-next-line no-console
         console.error("[ONLYOFFICE AIChat] Failed to load DocSpace SDK", e),
       );
-  }, [loadDocspace, user, settings?.url]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loadDocspace, settings?.url]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -412,7 +409,7 @@ const RoomPage: React.FC = () => {
           <OnlyofficeSpinner />
         </div>
       )}
-      {!loading && !user?.docspaceAccount && (
+      {!loading && !docspaceAuthorized && (
         <div className="h-full flex flex-row custom-scroll overflow-y-scroll overflow-x-hidden">
           <div className="p-5">
             <div className="w-full pb-4">
@@ -431,7 +428,7 @@ const RoomPage: React.FC = () => {
           </div>
         </div>
       )}
-      {!loading && !room?.id && user?.docspaceAccount && (
+      {!loading && !room?.id && docspaceAuthorized && (
         <div className="h-full flex flex-row custom-scroll overflow-y-scroll overflow-x-hidden">
           <div className="p-5">
             <div className="w-full pb-4">
@@ -461,7 +458,7 @@ const RoomPage: React.FC = () => {
           </div>
         </div>
       )}
-      {loadDocspace && user && settings?.url && user?.docspaceAccount && (
+      {loadDocspace && settings?.url && docspaceAuthorized && (
         <div
           key={room?.id}
           className={`w-full h-full flex flex-col items-end
