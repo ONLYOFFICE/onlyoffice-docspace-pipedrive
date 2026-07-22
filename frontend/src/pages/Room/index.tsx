@@ -20,7 +20,6 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import i18next from "i18next";
 import { useTranslation } from "react-i18next";
 import { Color, Command, View } from "@pipedrive/app-extensions-sdk";
-import { DocSpace } from "@onlyoffice/docspace-react";
 import {
   TFrameConfig,
   TFrameEvents,
@@ -69,10 +68,35 @@ const DOCSPACE_ROOM_TYPES = [
   },
 ];
 
+let sdkLoaded = false;
+let sdkLoading: Promise<void> | null = null;
+
+function ensureSdk(url: string): Promise<void> {
+  if (sdkLoaded) return Promise.resolve();
+  if (sdkLoading) return sdkLoading;
+
+  sdkLoading = new Promise<void>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = `${url}/static/scripts/sdk/2.2.0/api.js`;
+    script.onload = () => {
+      sdkLoaded = true;
+      sdkLoading = null;
+      resolve();
+    };
+    script.onerror = (e) => {
+      sdkLoading = null;
+      reject(e);
+    };
+    document.head.appendChild(script);
+  });
+
+  return sdkLoading;
+}
+
 const RoomPage: React.FC = () => {
   const { t } = useTranslation();
   const { parameters } = getCurrentURL();
-  const { sdk, pipedriveToken, user, setUser, settings, setAppError } =
+  const { sdk, pipedriveToken, user, settings, setAppError } =
     useContext(AppContext);
 
   const [loading, setLoading] = useState(true);
@@ -294,6 +318,8 @@ const RoomPage: React.FC = () => {
     }
   };
 
+  const getToken = () => user?.docspaceAccount?.token || "";
+
   const getRoomDocspaceConfig = () => {
     const config = {
       frameId: DOCSPACE_FRAME_ID,
@@ -304,12 +330,13 @@ const RoomPage: React.FC = () => {
       theme: sdk.userSettings.theme === "dark" ? "Dark" : "Base",
       showHeader: false,
       locale: getLocaleForDocspace(i18next.language),
+      getToken,
       events: {
         onAppError,
         onNoAccess,
         onNotFound,
       } as TFrameEvents,
-    } as TFrameConfig;
+    } as unknown as TFrameConfig;
 
     if (room?.id && config.events) {
       config.events.onContentReady = onContentReady as (
@@ -326,15 +353,13 @@ const RoomPage: React.FC = () => {
     return config;
   };
 
-  const onRequestPasswordHash = () => user?.docspaceAccount?.passwordHash || "";
-
-  const onUnsuccessLogin = () => {
-    if (user) {
-      setUser({ ...user, docspaceAccount: null });
-    }
-    sdk.execute(Command.RESIZE, { height: 128 });
-    setLoading(false);
-  };
+  // const onUnsuccessLogin = () => {
+  //   if (user) {
+  //     setUser({ ...user, docspaceAccount: null });
+  //   }
+  //   sdk.execute(Command.RESIZE, { height: 128 });
+  //   setLoading(false);
+  // };
 
   const getCreateRoomOptions = () =>
     DOCSPACE_ROOM_TYPES.reduce((createRoomOptions, roomType) => {
@@ -347,6 +372,30 @@ const RoomPage: React.FC = () => {
       });
       return createRoomOptions;
     }, new Array<DropdownButtonOptions>());
+
+  useEffect(() => {
+    if (!settings?.url) {
+      return;
+    }
+
+    ensureSdk(settings.url)
+      .then(() => {
+        if (loadDocspace && user && settings?.url && user?.docspaceAccount) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const docspaceSDK = (window as any).DocSpace?.SDK;
+          if (!docspaceSDK) return;
+
+          const config = getRoomDocspaceConfig();
+          config.src = settings?.url;
+
+          docspaceInstance.current = docspaceSDK.init(config);
+        }
+      })
+      .catch((e) =>
+        // eslint-disable-next-line no-console
+        console.error("[ONLYOFFICE AIChat] Failed to load DocSpace SDK", e),
+      );
+  }, [loadDocspace, user, settings?.url]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -411,16 +460,7 @@ const RoomPage: React.FC = () => {
             ${!showDocspaceWindow ? "hidden" : ""}
           `}
         >
-          <DocSpace
-            url={settings.url}
-            config={getRoomDocspaceConfig()}
-            email={user?.docspaceAccount?.userName || "undefined"}
-            onRequestPasswordHash={onRequestPasswordHash}
-            onUnsuccessLogin={onUnsuccessLogin}
-            onSetDocspaceInstance={(instance) => {
-              docspaceInstance.current = instance;
-            }}
-          />
+          <div id={DOCSPACE_FRAME_ID} />
           <div className="pr-4">
             <OnlyofficeButton
               text={t("button.open-in-docspace", "Open in DocSpace")}
