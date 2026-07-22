@@ -62,7 +62,8 @@ public class UserControllerTest extends AbstractControllerTest {
                     "language", new PipedriveUser.Language("en", "US"),
                     "docspaceAccount", new DocspaceAccountResponse(
                             testDocspaceAccount.getEmail(),
-                            testDocspaceAccount.getPasswordHash()
+                            testDocspaceAccount.getPasswordHash(),
+                            null
                         )
                     )
                 ), Map.class

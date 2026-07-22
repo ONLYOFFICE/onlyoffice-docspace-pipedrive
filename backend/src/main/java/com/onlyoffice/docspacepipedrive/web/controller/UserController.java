@@ -65,7 +65,10 @@ public class UserController {
         if (Objects.nonNull(docspaceAccount)) {
             userResponse.put("docspaceAccount", new DocspaceAccountResponse(
                     docspaceAccount.getEmail(),
-                    docspaceAccount.getPasswordHash()
+                    docspaceAccount.getPasswordHash(),
+                    Objects.nonNull(docspaceAccount.getAccessToken())
+                            ? docspaceAccount.getAccessToken().getValue()
+                            : null
             ));
         } else {
             userResponse.put("docspaceAccount", null);
