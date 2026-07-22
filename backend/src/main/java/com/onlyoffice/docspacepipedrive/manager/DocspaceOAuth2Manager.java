@@ -25,6 +25,7 @@ import com.onlyoffice.docspacepipedrive.entity.Settings;
 import com.onlyoffice.docspacepipedrive.entity.user.AccessToken;
 import com.onlyoffice.docspacepipedrive.entity.user.RefreshToken;
 import com.onlyoffice.docspacepipedrive.events.user.DocspaceLoginUserEvent;
+import com.onlyoffice.docspacepipedrive.exceptions.DocspaceAccountNotFoundException;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceOAuth2AuthorizationException;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceOAuth2StateException;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceUrlNotFoundException;
@@ -36,10 +37,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
+import org.springframework.security.oauth2.client.endpoint.OAuth2RefreshTokenGrantRequest;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
+import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AccessTokenResponse;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationExchange;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
@@ -53,6 +57,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Objects;
@@ -65,6 +70,7 @@ public class DocspaceOAuth2Manager {
     private static final String AUTHORIZATION_URI_PATH = "/oauth2/authorize";
     private static final String TOKEN_URI_PATH = "/oauth2/token";
     private static final int CODE_VERIFIER_BYTE_LENGTH = 64;
+    private static final Duration ACCESS_TOKEN_EXPIRY_BUFFER = Duration.ofSeconds(60);
 
     private final SettingsService settingsService;
     private final DocspaceAccountService docspaceAccountService;
@@ -72,6 +78,8 @@ public class DocspaceOAuth2Manager {
     private final DocspaceOAuth2StateRepository docspaceOAuth2StateRepository;
     private final OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest>
             docspaceAccessTokenResponseClient;
+    private final OAuth2AccessTokenResponseClient<OAuth2RefreshTokenGrantRequest>
+            docspaceRefreshTokenResponseClient;
     private final ApplicationEventPublisher eventPublisher;
 
     @Value("${app.docspace-client-id}")
@@ -156,6 +164,81 @@ public class DocspaceOAuth2Manager {
         DocspaceAccount savedDocspaceAccount = docspaceAccountService.save(clientId, userId, docspaceAccount);
 
         eventPublisher.publishEvent(new DocspaceLoginUserEvent(this, savedDocspaceAccount));
+    }
+
+    public String getValidAccessToken(final Long clientId, final Long userId) {
+        DocspaceAccount docspaceAccount = docspaceAccountService.findByClientIdAndUserId(clientId, userId);
+
+        if (Objects.isNull(docspaceAccount) || Objects.isNull(docspaceAccount.getAccessToken())) {
+            throw new DocspaceAccountNotFoundException(clientId, userId);
+        }
+
+        AccessToken accessToken = docspaceAccount.getAccessToken();
+        RefreshToken refreshToken = docspaceAccount.getRefreshToken();
+
+        if (!isExpiringSoon(accessToken) || Objects.isNull(refreshToken)) {
+            return accessToken.getValue();
+        }
+
+        String docspaceUrl = getDocspaceUrl(clientId);
+        ClientRegistration clientRegistration = buildClientRegistration(docspaceUrl);
+
+        OAuth2AccessTokenResponse tokenResponse =
+                refreshAccessToken(clientRegistration, accessToken, refreshToken);
+
+        AccessToken refreshedAccessToken = AccessToken.builder()
+                .value(tokenResponse.getAccessToken().getTokenValue())
+                .issuedAt(tokenResponse.getAccessToken().getIssuedAt())
+                .expiresAt(tokenResponse.getAccessToken().getExpiresAt())
+                .build();
+
+        RefreshToken refreshedRefreshToken = refreshToken;
+        if (Objects.nonNull(tokenResponse.getRefreshToken())) {
+            refreshedRefreshToken = RefreshToken.builder()
+                    .value(tokenResponse.getRefreshToken().getTokenValue())
+                    .issuedAt(tokenResponse.getRefreshToken().getIssuedAt())
+                    .build();
+        }
+
+        docspaceAccount.setAccessToken(refreshedAccessToken);
+        docspaceAccount.setRefreshToken(refreshedRefreshToken);
+        docspaceAccountService.save(clientId, userId, docspaceAccount);
+
+        return refreshedAccessToken.getValue();
+    }
+
+    private boolean isExpiringSoon(final AccessToken accessToken) {
+        if (Objects.isNull(accessToken.getExpiresAt())) {
+            return false;
+        }
+
+        return Instant.now().plus(ACCESS_TOKEN_EXPIRY_BUFFER).isAfter(accessToken.getExpiresAt());
+    }
+
+    private OAuth2AccessTokenResponse refreshAccessToken(final ClientRegistration clientRegistration,
+                                                          final AccessToken accessToken,
+                                                          final RefreshToken refreshToken) {
+        OAuth2AccessToken currentAccessToken = new OAuth2AccessToken(
+                OAuth2AccessToken.TokenType.BEARER,
+                accessToken.getValue(),
+                accessToken.getIssuedAt(),
+                accessToken.getExpiresAt()
+        );
+
+        OAuth2RefreshToken currentRefreshToken = new OAuth2RefreshToken(
+                refreshToken.getValue(),
+                refreshToken.getIssuedAt()
+        );
+
+        OAuth2RefreshTokenGrantRequest grantRequest = new OAuth2RefreshTokenGrantRequest(
+                clientRegistration, currentAccessToken, currentRefreshToken
+        );
+
+        try {
+            return docspaceRefreshTokenResponseClient.getTokenResponse(grantRequest);
+        } catch (OAuth2AuthorizationException e) {
+            throw new DocspaceOAuth2AuthorizationException(e);
+        }
     }
 
     private OAuth2AccessTokenResponse exchangeCodeForToken(final ClientRegistration clientRegistration,

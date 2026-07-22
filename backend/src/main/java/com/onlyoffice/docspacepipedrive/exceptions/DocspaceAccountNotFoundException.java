@@ -16,17 +16,17 @@
  *
  */
 
-package com.onlyoffice.docspacepipedrive.web.dto.docspaceaccount;
+package com.onlyoffice.docspacepipedrive.exceptions;
+
+import java.text.MessageFormat;
 
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-
-@AllArgsConstructor
-@Data
-@NoArgsConstructor
-public class DocspaceAccountResponse {
-    private String userName;
+public class DocspaceAccountNotFoundException extends RuntimeException {
+    public DocspaceAccountNotFoundException(final Long clientId, final Long userId) {
+        super(MessageFormat.format(
+                "DocspaceAccount for Client ID ({0}) and User ID ({1}) not found.",
+                clientId.toString(),
+                userId.toString()
+        ));
+    }
 }

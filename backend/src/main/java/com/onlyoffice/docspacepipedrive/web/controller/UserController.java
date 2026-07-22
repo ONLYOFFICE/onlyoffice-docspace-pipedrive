@@ -24,6 +24,7 @@ import com.onlyoffice.docspacepipedrive.manager.DocspaceOAuth2Manager;
 import com.onlyoffice.docspacepipedrive.security.oauth.OAuth2PipedriveUser;
 import com.onlyoffice.docspacepipedrive.service.DocspaceAccountService;
 import com.onlyoffice.docspacepipedrive.web.dto.docspaceaccount.DocspaceAccountResponse;
+import com.onlyoffice.docspacepipedrive.web.dto.docspaceaccount.DocspaceAccountTokenResponse;
 import com.onlyoffice.docspacepipedrive.web.dto.docspaceaccount.DocspaceOAuth2AuthorizeUrlResponse;
 import com.onlyoffice.docspacepipedrive.web.dto.docspaceaccount.DocspaceOAuth2CallbackRequest;
 import jakarta.validation.Valid;
@@ -65,10 +66,7 @@ public class UserController {
         ));
         if (Objects.nonNull(docspaceAccount)) {
             userResponse.put("docspaceAccount", new DocspaceAccountResponse(
-                    docspaceAccount.getEmail(),
-                    Objects.nonNull(docspaceAccount.getAccessToken())
-                            ? docspaceAccount.getAccessToken().getValue()
-                            : null
+                    docspaceAccount.getEmail()
             ));
         } else {
             userResponse.put("docspaceAccount", null);
@@ -103,6 +101,17 @@ public class UserController {
         );
 
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/docspace-account/token")
+    public ResponseEntity<DocspaceAccountTokenResponse> getDocspaceAccountToken(
+            @AuthenticationPrincipal OAuth2PipedriveUser currentUser) {
+        String token = docspaceOAuth2Manager.getValidAccessToken(
+                currentUser.getClientId(),
+                currentUser.getUserId()
+        );
+
+        return ResponseEntity.ok(new DocspaceAccountTokenResponse(token));
     }
 
     @DeleteMapping("/docspace-account")

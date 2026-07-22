@@ -19,6 +19,7 @@
 package com.onlyoffice.docspacepipedrive.web.controller;
 
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceAccountAlreadyExistsException;
+import com.onlyoffice.docspacepipedrive.exceptions.DocspaceAccountNotFoundException;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceApiKeyInvalidException;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceApiKeyNotFoundException;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceOAuth2AuthorizationException;
@@ -95,6 +96,18 @@ public class ExceptionHandlerController {
                 .body(
                         new ErrorResponse(
                                 DocspaceAccountAlreadyExistsException.class.getSimpleName(),
+                                e.getLocalizedMessage(),
+                                null
+                        )
+                );
+    }
+
+    @ExceptionHandler(DocspaceAccountNotFoundException.class)
+    public ResponseEntity<ErrorResponse> docspaceAccountNotFoundException(DocspaceAccountNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(
+                        new ErrorResponse(
+                                DocspaceAccountNotFoundException.class.getSimpleName(),
                                 e.getLocalizedMessage(),
                                 null
                         )
