@@ -65,9 +65,7 @@ public final class TestUtils {
         ));
 
         return DocspaceAccount.builder()
-                .email(MessageFormat.format("docspace.user{0}@onlyoffice.com", userId.toString()))
                 .uuid(uuid)
-                .passwordHash("password_hash")
                 .build();
     }
 }

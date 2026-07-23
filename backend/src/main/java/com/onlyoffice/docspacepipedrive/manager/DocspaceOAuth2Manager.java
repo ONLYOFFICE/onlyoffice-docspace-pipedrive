@@ -157,7 +157,6 @@ public class DocspaceOAuth2Manager {
         }
 
         docspaceAccount.setUuid(docspaceUser.getId());
-        docspaceAccount.setEmail(docspaceUser.getEmail());
         docspaceAccount.setAccessToken(accessToken);
         docspaceAccount.setRefreshToken(refreshToken);
 
