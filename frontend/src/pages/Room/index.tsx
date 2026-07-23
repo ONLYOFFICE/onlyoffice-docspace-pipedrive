@@ -407,7 +407,7 @@ const RoomPage: React.FC = () => {
         // eslint-disable-next-line no-console
         console.error("[ONLYOFFICE AIChat] Failed to load DocSpace SDK", e),
       );
-  }, [loadDocspace, settings?.url]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loadDocspace, settings?.url, room?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="w-full h-full flex flex-col">
