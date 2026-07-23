@@ -324,7 +324,14 @@ const RoomPage: React.FC = () => {
     try {
       return await getDocspaceAccountToken(pipedriveToken);
     } catch (e) {
-      if ((e as AxiosError)?.response?.status === 401) {
+      const data = (e as AxiosError)?.response?.data as ErrorResponse;
+      const isDocspaceOAuthError =
+        data?.cause === "DocspaceOAuth2AuthorizationException";
+
+      if (
+        (e as AxiosError)?.response?.status === 401 &&
+        !isDocspaceOAuthError
+      ) {
         setAppError(AppErrorType.TOKEN_ERROR);
       } else {
         onUnsuccessLogin();

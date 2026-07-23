@@ -25,6 +25,7 @@ import {
   DOCSPACE_OAUTH_CALLBACK_MESSAGE_TYPE,
   DocspaceOAuthCallbackMessage,
 } from "../../types/docspace";
+import { ErrorResponse } from "../../types/error";
 
 export type AuthorizationSettingProps = {
   showUserGuide(): void;
@@ -52,7 +53,14 @@ export const AuthorizationSetting: React.FC<AuthorizationSettingProps> = ({
       const email = await getDocspaceAccount(pipedriveToken);
       setDocspaceAccountEmail(email);
     } catch (e) {
-      if ((e as AxiosError)?.response?.status === 401) {
+      const data = (e as AxiosError)?.response?.data as ErrorResponse;
+      const isDocspaceOAuthError =
+        data?.cause === "DocspaceOAuth2AuthorizationException";
+
+      if (
+        (e as AxiosError)?.response?.status === 401 &&
+        !isDocspaceOAuthError
+      ) {
         setAppError(AppErrorType.TOKEN_ERROR);
       }
       setDocspaceAccountEmail(null);
