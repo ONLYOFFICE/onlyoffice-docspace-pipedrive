@@ -18,10 +18,25 @@
 
 package com.onlyoffice.docspacepipedrive.web.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.onlyoffice.docspacepipedrive.client.docspace.DocspaceClient;
+import com.onlyoffice.docspacepipedrive.client.pipedrive.PipedriveClient;
+import com.onlyoffice.docspacepipedrive.entity.Settings;
+import com.onlyoffice.docspacepipedrive.exceptions.DocspaceOperationException;
+import com.onlyoffice.docspacepipedrive.manager.DocspaceOAuth2Manager;
+import com.onlyoffice.docspacepipedrive.security.oauth.OAuth2PipedriveUser;
+import com.onlyoffice.docspacepipedrive.service.SettingsService;
+import com.onlyoffice.docspacepipedrive.web.dto.files.SendFileRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 
 
 @RestController
@@ -29,4 +44,42 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @Slf4j
 public class FilesController {
+    private final PipedriveClient pipedriveClient;
+    private final DocspaceClient docspaceClient;
+    private final SettingsService settingsService;
+    private final DocspaceOAuth2Manager docspaceOAuth2Manager;
+
+    @PostMapping("/send/from-docspace-to-pipedrive")
+    public ResponseEntity<JsonNode> sendFromDocspaceToPipedrive(
+            @AuthenticationPrincipal OAuth2PipedriveUser currentUser,
+            @Valid @RequestBody SendFileRequest request
+    ) {
+        Settings settings = settingsService.findByClientId(currentUser.getClientId());
+        String docspaceUrl = settings.getUrl();
+        String accessToken = docspaceOAuth2Manager.getValidAccessToken(
+                currentUser.getClientId(),
+                currentUser.getUserId()
+        );
+
+        var tuple = Mono.zip(
+                docspaceClient.getFile(request.getTargetId(), docspaceUrl, accessToken),
+                docspaceClient.downloadFile(request.getTargetId(), docspaceUrl, accessToken)
+        ).block();
+
+        if (tuple == null) {
+            throw new DocspaceOperationException("send file to pipedrive", "empty response");
+        }
+
+        return pipedriveClient.uploadFile(
+                        request.getDestinationId(),
+                        tuple.getT1().getTitle(),
+                        tuple.getT2().getBody()
+                )
+                .map(ResponseEntity::ok)
+                .switchIfEmpty(Mono.error(new DocspaceOperationException(
+                        "send file to pipedrive",
+                        "empty response"
+                )))
+                .block();
+    }
 }

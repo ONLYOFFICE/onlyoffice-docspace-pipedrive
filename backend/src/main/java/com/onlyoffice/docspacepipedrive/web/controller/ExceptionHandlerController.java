@@ -22,6 +22,7 @@ import com.onlyoffice.docspacepipedrive.exceptions.DocspaceAccountAlreadyExistsE
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceAccountNotFoundException;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceApiKeyInvalidException;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceApiKeyNotFoundException;
+import com.onlyoffice.docspacepipedrive.exceptions.DocspaceOperationException;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceOAuth2AuthorizationException;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceOAuth2StateException;
 import com.onlyoffice.docspacepipedrive.exceptions.DocspaceUrlNotFoundException;
@@ -74,6 +75,22 @@ public class ExceptionHandlerController {
                                 DocspaceWebClientResponseException.class.getSimpleName(),
                                 e.getLocalizedMessage(),
                                 null
+                        )
+                );
+    }
+
+    @ExceptionHandler(DocspaceOperationException.class)
+    public ResponseEntity<ErrorResponse> docspaceOperationException(DocspaceOperationException e) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("operation", e.getOperation());
+        params.put("docspaceMessage", e.getDocspaceMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(
+                        new ErrorResponse(
+                                DocspaceOperationException.class.getSimpleName(),
+                                e.getLocalizedMessage(),
+                                params
                         )
                 );
     }
