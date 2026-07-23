@@ -27,6 +27,7 @@ module.exports = merge(common, {
     plugins: [
         new webpack.DefinePlugin({
             'process.env.BACKEND_URL': JSON.stringify(process.env.BACKEND_URL),
+            'process.env.EDITOR_ACTION_ID': JSON.stringify(process.env.EDITOR_ACTION_ID),
         }),
     ],
 });

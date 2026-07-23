@@ -20,7 +20,7 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import i18next from "i18next";
 import { useTranslation } from "react-i18next";
 import { AxiosError } from "axios";
-import { Color, Command, View } from "@pipedrive/app-extensions-sdk";
+import { Color, Command, Modal, View } from "@pipedrive/app-extensions-sdk";
 import {
   TFrameConfig,
   TFrameEvents,
@@ -35,6 +35,7 @@ import { getCurrentURL, stripTrailingSlash } from "@utils/url";
 import { OnlyofficeSpinner } from "@components/spinner";
 
 import { getLocaleForDocspace } from "@utils/locale";
+import { ensureDocspaceSdk } from "@utils/docspaceSdk";
 import {
   DropdownButtonColor,
   OnlyofficeDropdownButton,
@@ -47,6 +48,11 @@ import { ButtonColor, OnlyofficeButton } from "@components/button";
 import { ErrorResponse } from "src/types/error";
 
 const DOCSPACE_FRAME_ID = "docspace-frame";
+
+type DocspaceEditorOpenEvent = {
+  id: string;
+  action: string;
+};
 const DOCSPACE_ROOM_TYPES = [
   {
     id: 6,
@@ -69,31 +75,6 @@ const DOCSPACE_ROOM_TYPES = [
     name: "custom",
   },
 ];
-
-let sdkLoaded = false;
-let sdkLoading: Promise<void> | null = null;
-
-function ensureSdk(url: string): Promise<void> {
-  if (sdkLoaded) return Promise.resolve();
-  if (sdkLoading) return sdkLoading;
-
-  sdkLoading = new Promise<void>((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = `${url}/static/scripts/sdk/2.2.0/api.js`;
-    script.onload = () => {
-      sdkLoaded = true;
-      sdkLoading = null;
-      resolve();
-    };
-    script.onerror = (e) => {
-      sdkLoading = null;
-      reject(e);
-    };
-    document.head.appendChild(script);
-  });
-
-  return sdkLoading;
-}
 
 const RoomPage: React.FC = () => {
   const { t } = useTranslation();
@@ -178,6 +159,17 @@ const RoomPage: React.FC = () => {
     setRoom({ ...room, id: null } as RoomResponse);
     setShowDocspaceWindow(false);
     sdk.execute(Command.RESIZE, { height: 350 });
+  };
+
+  const onEditorOpen = async (event: DocspaceEditorOpenEvent) => {
+    await sdk.execute(Command.OPEN_MODAL, {
+      type: Modal.CUSTOM_MODAL,
+      action_id: process.env.EDITOR_ACTION_ID || "",
+      data: {
+        fileId: event.id,
+        mode: event.action === "edit" ? "editor" : "viewer",
+      },
+    });
   };
 
   const saveRoom = (roomId: string) => {
@@ -355,6 +347,7 @@ const RoomPage: React.FC = () => {
         onAppError,
         onNoAccess,
         onNotFound,
+        onEditorOpen,
       } as TFrameEvents,
     } as unknown as TFrameConfig;
 
@@ -390,7 +383,7 @@ const RoomPage: React.FC = () => {
       return;
     }
 
-    ensureSdk(settings.url)
+    ensureDocspaceSdk(settings.url)
       .then(() => {
         if (loadDocspace) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -7,10 +7,13 @@ on:
       backend_url:
         description: "Specify backend url"
         type: string
+      editor_action_id:
+        description: "Specify DocSpace editor custom modal action id"
+        type: string
       product_version:
         description: "Specify product version"
         type: string
-      
+
 jobs:
   build:
     name: "Build DocSpace-pipedrive"
@@ -37,9 +40,11 @@ jobs:
       - name: Build
         env:
            BACKEND_URL: ${{  github.event.inputs.backend_url }}
+           EDITOR_ACTION_ID: ${{ github.event.inputs.editor_action_id }}
            PRODUCT_VERSION: ${{ github.event.inputs.product_version }}
            REGISTRY: ${{ secrets.DOCKER_TEST_REGISTRY }}
         run: |
           docker compose build \
-               --build-arg BACKEND_URL=$BACKEND_URL
+               --build-arg BACKEND_URL=$BACKEND_URL \
+               --build-arg EDITOR_ACTION_ID=$EDITOR_ACTION_ID
           docker compose push

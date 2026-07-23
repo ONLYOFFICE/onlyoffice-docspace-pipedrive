@@ -32,6 +32,7 @@ services:
       target: frontend
       args:
         - BACKEND_URL=${BACKEND_URL}
+        - EDITOR_ACTION_ID=${EDITOR_ACTION_ID}
     image: ${REGISTRY}/pipedrive-docspace-frontend:${PRODUCT_VERSION}
     stdin_open: true
     ports:

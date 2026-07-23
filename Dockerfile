@@ -2,6 +2,8 @@ FROM node:current-alpine AS build-frontend
 LABEL maintainer Ascensio System SIA <support@onlyoffice.com>
 ARG BACKEND_URL
 ENV BACKEND_URL=$BACKEND_URL
+ARG EDITOR_ACTION_ID
+ENV EDITOR_ACTION_ID=$EDITOR_ACTION_ID
 WORKDIR /usr/src/app
 COPY ./frontend/package*.json ./
 COPY ./frontend/onlyoffice-docspace-react*.tgz ./
