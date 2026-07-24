@@ -1,6 +1,6 @@
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useRef } from "react";
 
-import { AppContext } from "@context/AppContext";
+import { AppContext, AppErrorType } from "@context/AppContext";
 import { Command } from "@pipedrive/app-extensions-sdk";
 
 import { OnlyofficeSpinner } from "@components/spinner";
@@ -12,45 +12,26 @@ import {
   sendFromDocspaceToPipedrive,
   sendFromPipedriveToDocspace,
 } from "@services/files";
+import { ensureDocspaceSdk } from "@utils/docspaceSdk";
+import { getDocspaceAccountToken } from "@services/user";
+import { AxiosError } from "axios";
+import { ErrorResponse } from "src/types/error";
+import { SDKInstance } from "@onlyoffice/docspace-sdk-js/dist/types/instance";
 
-const DOCSPACE_URL = "https://aleksandrfedorov.onlyoffice.io";
+const DOCSPACE_FRAME_ID = "docspace-frame";
 const DESTINATION_FOLDER_ID = 45930; // TODO: get actual destination folder id
 
 type SelectorMode = "deal" | "file";
-
-let sdkLoaded = false;
-let sdkLoading: Promise<void> | null = null;
-
-function ensureSdk(): Promise<void> {
-  if (sdkLoaded) return Promise.resolve();
-  if (sdkLoading) return sdkLoading;
-
-  sdkLoading = new Promise<void>((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = `${DOCSPACE_URL}/static/scripts/sdk/2.2.0/api.js`;
-    script.onload = () => {
-      sdkLoaded = true;
-      sdkLoading = null;
-      resolve();
-    };
-    script.onerror = (e) => {
-      sdkLoading = null;
-      reject(e);
-    };
-    document.head.appendChild(script);
-  });
-
-  return sdkLoading;
-}
 
 const FilesPage: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [selectorMode, setSelectorMode] = React.useState<SelectorMode | null>(
     null,
   );
-  const docpaceFileToSend = React.useRef<number | null>(null);
+  const docpaceFileToSend = useRef<number | null>(null);
+  const docspaceInstance = useRef<SDKInstance | null>(null);
 
-  const { sdk, pipedriveToken } = useContext(AppContext);
+  const { sdk, settings, pipedriveToken, setAppError } = useContext(AppContext);
 
   sdk.execute(Command.RESIZE, {
     width: 800,
@@ -112,6 +93,14 @@ const FilesPage: React.FC = () => {
         message: "Uploading file to DocSpace...",
       });
 
+      docspaceInstance.current?.getFolderInfo().then((folderInfo) => {
+        // eslint-disable-next-line no-console
+        console.log(
+          "[ONLYOFFICE Files] Docspace SDK - folderInfo:",
+          folderInfo,
+        ); // Wrong method for this mode
+      });
+
       await sendFromPipedriveToDocspace(pipedriveToken, {
         targetId: file.id,
         destinationId: DESTINATION_FOLDER_ID,
@@ -137,39 +126,60 @@ const FilesPage: React.FC = () => {
     docpaceFileToSend.current = null;
   };
 
+  const getToken = async () => {
+    try {
+      return await getDocspaceAccountToken(pipedriveToken);
+    } catch (e) {
+      const errorData = (e as AxiosError)?.response?.data as ErrorResponse;
+      const isDocspaceOAuthError =
+        errorData?.cause === "DocspaceOAuth2AuthorizationException";
+
+      if (
+        (e as AxiosError)?.response?.status === 401 &&
+        !isDocspaceOAuthError
+      ) {
+        setAppError(AppErrorType.TOKEN_ERROR);
+      } else {
+        setAppError(AppErrorType.COMMON_ERROR);
+      }
+      return "";
+    }
+  };
+
   useEffect(() => {
-    const initFiles = () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const docspaceSDK = (window as any).DocSpace?.SDK;
-      if (!docspaceSDK) return;
+    if (!settings?.url) {
+      return;
+    }
 
-      docspaceSDK.initPersonal({
-        frameId: "ds-frame",
-        src: DOCSPACE_URL,
-        theme: "Base",
-        width: "100%",
-        height: "100%",
-        downloadToEvent: true,
-        events: {
-          onAppReady,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, no-console
-          onAppError: (e: any) =>
-            // eslint-disable-next-line no-console
-            console.error("[ONLYOFFICE Files] Docspace SDK - onAppError:", e),
-          onDownload,
-        },
-      });
-    };
-
-    ensureSdk()
+    ensureDocspaceSdk(settings.url)
       .then(() => {
-        initFiles();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const docspaceSDK = (window as any).DocSpace?.SDK;
+        if (!docspaceSDK) return;
+
+        docspaceInstance.current = docspaceSDK.initPersonal({
+          frameId: DOCSPACE_FRAME_ID,
+          src: settings.url,
+          theme: "Base",
+          width: "100%",
+          height: "100%",
+          downloadToEvent: true,
+          getToken,
+          events: {
+            onAppReady,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, no-console
+            onAppError: (e: any) =>
+              // eslint-disable-next-line no-console
+              console.error("[ONLYOFFICE Files] Docspace SDK - onAppError:", e),
+            onDownload,
+          },
+        });
       })
       .catch((e) =>
         // eslint-disable-next-line no-console
         console.error("[ONLYOFFICE Files] Failed to load DocSpace SDK", e),
       );
-  }, []);
+  }, [settings?.url]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="w-full h-full flex flex-col relative">
@@ -181,7 +191,7 @@ const FilesPage: React.FC = () => {
       <div
         className={`w-full h-full flex flex-col items-end ${loading ? "hidden" : ""}`}
       >
-        <div id="ds-frame" />
+        <div id={DOCSPACE_FRAME_ID} />
       </div>
       {!loading && (
         <button
