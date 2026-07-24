@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useRef } from "react";
 
 import { AppContext, AppErrorType } from "@context/AppContext";
-import { Command } from "@pipedrive/app-extensions-sdk";
+import { Command, Modal } from "@pipedrive/app-extensions-sdk";
 
 import { OnlyofficeSpinner } from "@components/spinner";
 import { DealSelector } from "@components/dealSelector/DealSelector";
@@ -23,6 +23,10 @@ const DESTINATION_FOLDER_ID = 45930; // TODO: get actual destination folder id
 
 type SelectorMode = "deal" | "file";
 
+type DocspaceEditorOpenEvent = {
+  id: string;
+  action: string;
+};
 const FilesPage: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [selectorMode, setSelectorMode] = React.useState<SelectorMode | null>(
@@ -146,6 +150,17 @@ const FilesPage: React.FC = () => {
     }
   };
 
+  const onEditorOpen = async (event: DocspaceEditorOpenEvent) => {
+    await sdk.execute(Command.OPEN_MODAL, {
+      type: Modal.CUSTOM_MODAL,
+      action_id: process.env.EDITOR_ACTION_ID || "",
+      data: {
+        fileId: event.id,
+        mode: event.action === "edit" ? "editor" : "viewer",
+      },
+    });
+  };
+
   useEffect(() => {
     if (!settings?.url) {
       return;
@@ -172,6 +187,7 @@ const FilesPage: React.FC = () => {
               // eslint-disable-next-line no-console
               console.error("[ONLYOFFICE Files] Docspace SDK - onAppError:", e),
             onDownload,
+            onEditorOpen,
           },
         });
       })
