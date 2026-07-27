@@ -20,13 +20,14 @@ import { AppContext, AppErrorType } from "@context/AppContext";
 import { Command } from "@pipedrive/app-extensions-sdk";
 import { getLocaleForDocspace } from "@utils/locale";
 import { ensureDocspaceSdk } from "@utils/docspaceSdk";
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import i18next from "i18next";
 import { TFrameConfig } from "@onlyoffice/docspace-sdk-js/dist/types/types";
 import { getDocspaceAccountToken } from "@services/user";
 import { AxiosError } from "axios";
 import { ErrorResponse } from "src/types/error";
 import { useLocation } from "react-router-dom";
+import { OnlyofficeDocspaceLogin } from "@components/docspaceLogin";
 
 const MODAL_WIDTH_PADDING = 64;
 const MODAL_HEIGHT_PADDING = 53;
@@ -36,6 +37,7 @@ const DOCSPACE_FRAME_ID = "docspace-frame";
 const EditorPage: React.FC = () => {
   const { search } = useLocation();
   const { sdk, settings, pipedriveToken, setAppError } = useContext(AppContext);
+  const [docspaceAuthorized, setDocspaceAuthorized] = useState(true);
 
   const data = JSON.parse(new URLSearchParams(search).get("data") || "{}");
   const fileId = data?.fileId || "";
@@ -66,7 +68,7 @@ const EditorPage: React.FC = () => {
       ) {
         setAppError(AppErrorType.TOKEN_ERROR);
       } else {
-        setAppError(AppErrorType.COMMON_ERROR);
+        setDocspaceAuthorized(false);
       }
       return "";
     }
@@ -108,8 +110,21 @@ const EditorPage: React.FC = () => {
         // eslint-disable-next-line no-console
         console.error("[ONLYOFFICE AIChat] Failed to load DocSpace SDK", e),
       );
-  }, [settings?.url, fileId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [settings?.url, fileId, mode, docspaceAuthorized]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <div id={DOCSPACE_FRAME_ID} />;
+  return (
+    <>
+      {!docspaceAuthorized && (
+        <OnlyofficeDocspaceLogin
+          onSuccess={() => setDocspaceAuthorized(true)}
+        />
+      )}
+      {docspaceAuthorized && (
+        <div className="w-full h-full flex flex-col items-end">
+          <div id={DOCSPACE_FRAME_ID} />
+        </div>
+      )}
+    </>
+  );
 };
 export default EditorPage;
