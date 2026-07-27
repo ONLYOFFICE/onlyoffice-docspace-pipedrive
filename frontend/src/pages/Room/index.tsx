@@ -20,7 +20,7 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import i18next from "i18next";
 import { useTranslation } from "react-i18next";
 import { AxiosError } from "axios";
-import { Color, Command, Modal, View } from "@pipedrive/app-extensions-sdk";
+import { Color, Command, Modal } from "@pipedrive/app-extensions-sdk";
 import {
   TFrameConfig,
   TFrameEvents,
@@ -44,7 +44,8 @@ import { DropdownButtonOptions } from "@components/dropdownButton/DropdownButton
 import { SDKInstance } from "@onlyoffice/docspace-sdk-js/dist/types/instance";
 import { DocspaceUser } from "src/types/docspace";
 import { RoomResponse } from "src/types/room";
-import { ButtonColor, OnlyofficeButton } from "@components/button";
+import { OnlyofficeButton } from "@components/button";
+import { OnlyofficeDocspaceLogin } from "@components/docspaceLogin";
 import { ErrorResponse } from "src/types/error";
 
 const DOCSPACE_FRAME_ID = "docspace-frame";
@@ -308,8 +309,13 @@ const RoomPage: React.FC = () => {
 
   const onUnsuccessLogin = () => {
     setDocspaceAuthorized(false);
-    sdk.execute(Command.RESIZE, { height: 128 });
+    sdk.execute(Command.RESIZE, { height: 560 });
     setLoading(false);
+  };
+
+  const onDocspaceAuthorized = () => {
+    setLoading(true);
+    setDocspaceAuthorized(true);
   };
 
   const getToken = async () => {
@@ -385,10 +391,12 @@ const RoomPage: React.FC = () => {
 
     ensureDocspaceSdk(settings.url)
       .then(() => {
-        if (loadDocspace) {
+        if (loadDocspace && docspaceAuthorized) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const docspaceSDK = (window as any).DocSpace?.SDK;
           if (!docspaceSDK) return;
+
+          docspaceInstance.current?.destroyFrame();
 
           const config = getRoomDocspaceConfig();
           config.src = settings?.url;
@@ -400,7 +408,7 @@ const RoomPage: React.FC = () => {
         // eslint-disable-next-line no-console
         console.error("[ONLYOFFICE AIChat] Failed to load DocSpace SDK", e),
       );
-  }, [loadDocspace, settings?.url, room?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loadDocspace, settings?.url, room?.id, docspaceAuthorized]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -410,23 +418,7 @@ const RoomPage: React.FC = () => {
         </div>
       )}
       {!loading && !docspaceAuthorized && (
-        <div className="h-full flex flex-row custom-scroll overflow-y-scroll overflow-x-hidden">
-          <div className="p-5">
-            <div className="w-full pb-4">
-              {t(
-                "room.login.description",
-                "Login to ONLYOFFICE DocSpace to easily collaborate on documents in this deal",
-              )}
-            </div>
-            <OnlyofficeButton
-              text={t("button.settings", "Go to Settings")}
-              color={ButtonColor.PRIMARY}
-              onClick={() =>
-                sdk.execute(Command.REDIRECT_TO, { view: View.SETTINGS })
-              }
-            />
-          </div>
-        </div>
+        <OnlyofficeDocspaceLogin onSuccess={onDocspaceAuthorized} />
       )}
       {!loading && !room?.id && docspaceAuthorized && (
         <div className="h-full flex flex-row custom-scroll overflow-y-scroll overflow-x-hidden">

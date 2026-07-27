@@ -69,7 +69,6 @@
   "room.creating.ok": "La salle d'ONLYOFFICE DocSpace a été créée avec succès !",
   "room.creating.error": "Échec de la création de la salle d'ONLYOFFICE DocSpace !",
   "room.create.description": "Créer une salle ONLYOFFICE DocSpace pour travailler avec les documents liés à cette affaire.",
-  "room.login.description": "Connectez-vous à ONLYOFFICE DocSpace pour collaborer facilement sur les documents de cette affaire",
   "room.request-access.ok": "L'accès à la salle d'ONLYOFFICE DocSpace vous a été accordé avec succès",
   "room.request-access.error": "Erreur d'accès à la salle d'ONLYOFFICE DocSpace",
   "room.request-access.forbidden": "Erreur d'accès à la salle ONLYOFFICE DocSpace, car l'utilisateur actuel n'est pas un suiveur d'affaires.",

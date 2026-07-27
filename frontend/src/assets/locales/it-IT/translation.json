@@ -69,7 +69,6 @@
   "room.creating.ok": "La stanza virtuale ONLYOFFICE DocSpace è stata creata con successo!",
   "room.creating.error": "Impossibile creare la stanza ONLYOFFICE DocSpace!",
   "room.create.description": "Crea una stanza in ONLYOFFICE DocSpace per lavorare sui documenti relativi a questa trattativa.",
-  "room.login.description": "Accedi a ONLYOFFICE DocSpace per collaborare facilmente sui documenti di questa trattativa",
   "room.request-access.ok": "L'accesso alla stanza ONLYOFFICE DocSpace è stato concesso",
   "room.request-access.error": "Errore nell'accesso alla stanza ONLYOFFICE DocSpace",
   "room.request-access.forbidden": "Errore nell'ottenere l'accesso alla stanza di ONLYOFFICE DocSpace, perché l'utente attuale non segue la trattativa.",

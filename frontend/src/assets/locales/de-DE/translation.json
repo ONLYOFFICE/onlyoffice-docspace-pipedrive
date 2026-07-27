@@ -69,7 +69,6 @@
   "room.creating.ok": "ONLYOFFICE DocSpace Raum wurde erfolgreich erstellt!",
   "room.creating.error": "ONLYOFFICE DocSpace Raum konnte nicht erstellt werden!",
   "room.create.description": "Erstellen Sie einen ONLYOFFICE DocSpace-Raum, um mit Dokumenten zu arbeiten, die sich auf diesen Deal beziehen.",
-  "room.login.description": "Melden Sie sich bei ONLYOFFICE DocSpace an, um in diesem Deal an Dokumenten zusammenzuarbeiten",
   "room.request-access.ok": "Sie haben erfolgreich Zugang zum ONLYOFFICE DocSpace-Raum erhalten",
   "room.request-access.error": "Fehler beim Erhalten des Zugangs zum ONLYOFFICE DocSpace-Raum",
   "room.request-access.forbidden": "Fehler beim Zugriff auf den ONLYOFFICE DocSpace-Raum, da der aktuelle Benutzer kein Deal-Follower ist.",

@@ -69,7 +69,6 @@
   "room.creating.ok": "Комната ONLYOFFICE DocSpace успешно создана!",
   "room.creating.error": "Не удалось создать комнату ONLYOFFICE DocSpace!",
   "room.create.description": "Создайте комнату в ONLYOFFICE DocSpace для работы с документами, связанными с этой сделкой.",
-  "room.login.description": "Войдите в ONLYOFFICE DocSpace, чтобы с легкостью работать над документами совместно в рамках этой сделки.",
   "room.request-access.ok": "Вам успешно предоставлен доступ к комнате ONLYOFFICE DocSpace",
   "room.request-access.error": "Ошибка при получении доступа к комнате ONLYOFFICE DocSpace",
   "room.request-access.forbidden": "Ошибка при получении доступа к комнате в ONLYOFFICE DocSpace: текущий пользователь не является подписчиком сделки.",

@@ -69,7 +69,6 @@
   "room.creating.ok": "ONLYOFFICE DocSpace ルームが正常に作成されました！",
   "room.creating.error": "ONLYOFFICE DocSpace ルームの作成に失敗しました！",
   "room.create.description": "この案件に関連する文書で作業するために、ONLYOFFICE DocSpaceルームを作成します。",
-  "room.login.description": "この案件で文書を簡単に共同作業するために、ONLYOFFICE DocSpaceにログインしてください",
   "room.request-access.ok": "ONLYOFFICE DocSpaceルームへのアクセスが許可されました。",
   "room.request-access.error": "ONLYOFFICE DocSpaceルームへのアクセスエラー",
   "room.request-access.forbidden": "ONLYOFFICE DocSpaceルームへのアクセスを取得する際にエラーが発生しました。現在のユーザーはこの案件のフォロワーではありません。",

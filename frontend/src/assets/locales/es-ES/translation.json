@@ -69,7 +69,6 @@
   "room.creating.ok": "¡La sala de ONLYOFFICE DocSpace se ha creado correctamente!",
   "room.creating.error": "¡Error al crear la sala de ONLYOFFICE DocSpace!",
   "room.create.description": "Crear una sala ONLYOFFICE DocSpace para trabajar con los documentos relacionados con este acuerdo.",
-  "room.login.description": "Inicia sesión en ONLYOFFICE DocSpace para colaborar fácilmente en los documentos de este acuerdo.",
   "room.request-access.ok": "Se le ha concedido correctamente el acceso a la sala de ONLYOFFICE DocSpace",
   "room.request-access.error": "Error al acceder a la sala de ONLYOFFICE DocSpace",
   "room.request-access.forbidden": "Error al obtener acceso a la sala ONLYOFFICE DocSpace, porque el usuario actual no es seguidor del acuerdo.",
