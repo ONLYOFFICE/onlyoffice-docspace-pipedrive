@@ -31,6 +31,7 @@ import { UserResponse } from "src/types/user";
 import { SettingsResponse } from "src/types/settings";
 import { PipedriveToken } from "@context/PipedriveToken";
 import { useLocation } from "react-router-dom";
+import { isPipedriveUnauthorized } from "@utils/error";
 
 type AppContextProps = {
   children?: JSX.Element | JSX.Element[];
@@ -142,7 +143,7 @@ export const AppContextProvider: React.FC<AppContextProps> = ({ children }) => {
           setSettings(settingsResponse);
           setPipedriveToken(pipedriveTokenObject);
         } catch (e) {
-          if (e instanceof AxiosError && e?.response?.status === 401) {
+          if (isPipedriveUnauthorized(e)) {
             setAppError(AppErrorType.TOKEN_ERROR);
           } else {
             setAppError(AppErrorType.COMMON_ERROR);

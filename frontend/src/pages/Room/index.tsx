@@ -19,7 +19,6 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import i18next from "i18next";
 import { useTranslation } from "react-i18next";
-import { AxiosError } from "axios";
 import { Color, Command, Modal } from "@pipedrive/app-extensions-sdk";
 import {
   TFrameConfig,
@@ -47,6 +46,7 @@ import { RoomResponse } from "src/types/room";
 import { OnlyofficeButton } from "@components/button";
 import { OnlyofficeDocspaceLogin } from "@components/docspaceLogin";
 import { ErrorResponse } from "src/types/error";
+import { isPipedriveUnauthorized } from "@utils/error";
 
 const DOCSPACE_FRAME_ID = "docspace-frame";
 
@@ -98,7 +98,7 @@ const RoomPage: React.FC = () => {
         setLoadDocspace(true);
       })
       .catch(async (e) => {
-        if (e?.response?.status === 401) {
+        if (isPipedriveUnauthorized(e)) {
           setAppError(AppErrorType.TOKEN_ERROR);
         } else {
           setAppError(AppErrorType.COMMON_ERROR);
@@ -150,7 +150,7 @@ const RoomPage: React.FC = () => {
   const onNotFound = () => {
     deleteRoom(pipedriveToken, Number(parameters.get("selectedIds"))).catch(
       (e) => {
-        if (e?.response?.status === 401) {
+        if (isPipedriveUnauthorized(e)) {
           setAppError(AppErrorType.TOKEN_ERROR);
         } else {
           setAppError(AppErrorType.COMMON_ERROR);
@@ -206,7 +206,7 @@ const RoomPage: React.FC = () => {
           return;
         }
 
-        if (e?.response?.status === 401) {
+        if (isPipedriveUnauthorized(e)) {
           setAppError(AppErrorType.TOKEN_ERROR);
         } else {
           setAppError(AppErrorType.COMMON_ERROR);
@@ -322,14 +322,7 @@ const RoomPage: React.FC = () => {
     try {
       return await getDocspaceAccountToken(pipedriveToken);
     } catch (e) {
-      const data = (e as AxiosError)?.response?.data as ErrorResponse;
-      const isDocspaceOAuthError =
-        data?.cause === "DocspaceOAuth2AuthorizationException";
-
-      if (
-        (e as AxiosError)?.response?.status === 401 &&
-        !isDocspaceOAuthError
-      ) {
+      if (isPipedriveUnauthorized(e)) {
         setAppError(AppErrorType.TOKEN_ERROR);
       } else {
         onUnsuccessLogin();

@@ -18,12 +18,16 @@
 
 package com.onlyoffice.docspacepipedrive.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.onlyoffice.docspacepipedrive.web.dto.ErrorCause;
+import com.onlyoffice.docspacepipedrive.web.dto.ErrorResponse;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
@@ -35,12 +39,27 @@ import java.io.IOException;
 @Primary
 @Slf4j
 public class AuthenticationEntryPointImpl implements AuthenticationEntryPoint {
+    private final ObjectMapper objectMapper;
+
+    public AuthenticationEntryPointImpl(final ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
+
     @Override
     public void commence(final HttpServletRequest request, final HttpServletResponse response,
                          final AuthenticationException authException) throws IOException, ServletException {
         log.info("Responding with unauthorized error. Message: {}", authException.getMessage());
 
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.sendError(HttpStatus.UNAUTHORIZED.value(), authException.getMessage());
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.getWriter().write(
+                objectMapper.writeValueAsString(
+                        new ErrorResponse(
+                                ErrorCause.PIPEDRIVE_AUTHENTICATION_REQUIRED.getWireValue(),
+                                authException.getMessage(),
+                                null
+                        )
+                )
+        );
     }
 }

@@ -24,10 +24,9 @@ import React, { useContext, useEffect, useState } from "react";
 import i18next from "i18next";
 import { TFrameConfig } from "@onlyoffice/docspace-sdk-js/dist/types/types";
 import { getDocspaceAccountToken } from "@services/user";
-import { AxiosError } from "axios";
-import { ErrorResponse } from "src/types/error";
 import { useLocation } from "react-router-dom";
 import { OnlyofficeDocspaceLogin } from "@components/docspaceLogin";
+import { isPipedriveUnauthorized } from "@utils/error";
 
 const MODAL_WIDTH_PADDING = 64;
 const MODAL_HEIGHT_PADDING = 53;
@@ -58,14 +57,7 @@ const EditorPage: React.FC = () => {
     try {
       return await getDocspaceAccountToken(pipedriveToken);
     } catch (e) {
-      const errorData = (e as AxiosError)?.response?.data as ErrorResponse;
-      const isDocspaceOAuthError =
-        errorData?.cause === "DocspaceOAuth2AuthorizationException";
-
-      if (
-        (e as AxiosError)?.response?.status === 401 &&
-        !isDocspaceOAuthError
-      ) {
+      if (isPipedriveUnauthorized(e)) {
         setAppError(AppErrorType.TOKEN_ERROR);
       } else {
         setDocspaceAuthorized(false);

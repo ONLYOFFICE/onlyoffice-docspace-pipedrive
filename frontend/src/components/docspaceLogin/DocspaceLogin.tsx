@@ -42,12 +42,11 @@ import LockSmall from "@assets/icon-lock-small.svg";
 import Authorized from "@assets/authorized.svg";
 import OpenLink from "@assets/open-link.svg";
 
-import { AxiosError } from "axios";
+import { isPipedriveUnauthorized } from "@utils/error";
 import {
   DOCSPACE_OAUTH_CALLBACK_MESSAGE_TYPE,
   DocspaceOAuthCallbackMessage,
 } from "../../types/docspace";
-import { ErrorResponse } from "../../types/error";
 
 export type DocspaceLoginProps = {
   onSuccess?: () => void;
@@ -75,14 +74,7 @@ export const OnlyofficeDocspaceLogin: React.FC<DocspaceLoginProps> = ({
       setDocspaceAccountEmail(email);
       return email;
     } catch (e) {
-      const data = (e as AxiosError)?.response?.data as ErrorResponse;
-      const isDocspaceOAuthError =
-        data?.cause === "DocspaceOAuth2AuthorizationException";
-
-      if (
-        (e as AxiosError)?.response?.status === 401 &&
-        !isDocspaceOAuthError
-      ) {
+      if (isPipedriveUnauthorized(e)) {
         setAppError(AppErrorType.TOKEN_ERROR);
       }
       setDocspaceAccountEmail(null);
@@ -109,7 +101,7 @@ export const OnlyofficeDocspaceLogin: React.FC<DocspaceLoginProps> = ({
       authorizeUrl = await getDocspaceOAuthAuthorizeUrl(pipedriveToken);
     } catch (e) {
       setConnecting(false);
-      if (e instanceof AxiosError && e?.response?.status === 401) {
+      if (isPipedriveUnauthorized(e)) {
         setAppError(AppErrorType.TOKEN_ERROR);
       } else {
         setAppError(AppErrorType.COMMON_ERROR);

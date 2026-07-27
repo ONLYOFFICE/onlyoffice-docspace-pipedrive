@@ -30,6 +30,7 @@ import com.onlyoffice.docspacepipedrive.exceptions.PipedriveOAuth2AuthorizationE
 import com.onlyoffice.docspacepipedrive.exceptions.PipedriveWebClientResponseException;
 import com.onlyoffice.docspacepipedrive.exceptions.RequestAccessToRoomException;
 import com.onlyoffice.docspacepipedrive.exceptions.SettingsValidationException;
+import com.onlyoffice.docspacepipedrive.web.dto.ErrorCause;
 import com.onlyoffice.docspacepipedrive.web.dto.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -46,7 +47,7 @@ public class ExceptionHandlerController {
         return ResponseEntity.status(e.getStatusCode())
                 .body(
                         new ErrorResponse(
-                                PipedriveWebClientResponseException.class.getSimpleName(),
+                                ErrorCause.PIPEDRIVE_WEB_CLIENT_RESPONSE_EXCEPTION.getWireValue(),
                                 e.getLocalizedMessage(),
                                 null
                         )
@@ -59,7 +60,7 @@ public class ExceptionHandlerController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(
                         new ErrorResponse(
-                                PipedriveOAuth2AuthorizationException.class.getSimpleName(),
+                                ErrorCause.PIPEDRIVE_OAUTH2_AUTHORIZATION_EXCEPTION.getWireValue(),
                                 e.getLocalizedMessage(),
                                 null
                         )
@@ -71,7 +72,7 @@ public class ExceptionHandlerController {
         return ResponseEntity.status(e.getStatusCode())
                 .body(
                         new ErrorResponse(
-                                DocspaceWebClientResponseException.class.getSimpleName(),
+                                ErrorCause.DOCSPACE_WEB_CLIENT_RESPONSE_EXCEPTION.getWireValue(),
                                 e.getLocalizedMessage(),
                                 null
                         )
@@ -83,7 +84,7 @@ public class ExceptionHandlerController {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(
                         new ErrorResponse(
-                                DocspaceUrlNotFoundException.class.getSimpleName(),
+                                ErrorCause.DOCSPACE_URL_NOT_FOUND_EXCEPTION.getWireValue(),
                                 e.getLocalizedMessage(),
                                 null
                         )
@@ -95,7 +96,7 @@ public class ExceptionHandlerController {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(
                         new ErrorResponse(
-                                DocspaceAccountAlreadyExistsException.class.getSimpleName(),
+                                ErrorCause.DOCSPACE_ACCOUNT_ALREADY_EXISTS_EXCEPTION.getWireValue(),
                                 e.getLocalizedMessage(),
                                 null
                         )
@@ -107,7 +108,7 @@ public class ExceptionHandlerController {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(
                         new ErrorResponse(
-                                DocspaceAccountNotFoundException.class.getSimpleName(),
+                                ErrorCause.DOCSPACE_ACCOUNT_NOT_FOUND_EXCEPTION.getWireValue(),
                                 e.getLocalizedMessage(),
                                 null
                         )
@@ -125,7 +126,7 @@ public class ExceptionHandlerController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(
                         new ErrorResponse(
-                                SettingsValidationException.class.getSimpleName(),
+                                ErrorCause.SETTINGS_VALIDATION_EXCEPTION.getWireValue(),
                                 e.getMessage(),
                                 params
                         )
@@ -137,7 +138,7 @@ public class ExceptionHandlerController {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(
                         new ErrorResponse(
-                                DocspaceApiKeyNotFoundException.class.getSimpleName(),
+                                ErrorCause.DOCSPACE_API_KEY_NOT_FOUND_EXCEPTION.getWireValue(),
                                 e.getLocalizedMessage(),
                                 null
                         )
@@ -149,7 +150,7 @@ public class ExceptionHandlerController {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(
                         new ErrorResponse(
-                                DocspaceApiKeyInvalidException.class.getSimpleName(),
+                                ErrorCause.DOCSPACE_API_KEY_INVALID_EXCEPTION.getWireValue(),
                                 e.getLocalizedMessage(),
                                 null
                         )
@@ -161,7 +162,7 @@ public class ExceptionHandlerController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(
                         new ErrorResponse(
-                                DocspaceOAuth2StateException.class.getSimpleName(),
+                                ErrorCause.DOCSPACE_OAUTH2_STATE_EXCEPTION.getWireValue(),
                                 e.getLocalizedMessage(),
                                 null
                         )
@@ -174,7 +175,7 @@ public class ExceptionHandlerController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(
                         new ErrorResponse(
-                                DocspaceOAuth2AuthorizationException.class.getSimpleName(),
+                                ErrorCause.DOCSPACE_OAUTH2_AUTHORIZATION_EXCEPTION.getWireValue(),
                                 e.getLocalizedMessage(),
                                 null
                         )
@@ -186,7 +187,7 @@ public class ExceptionHandlerController {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(
                         new ErrorResponse(
-                                RequestAccessToRoomException.class.getSimpleName(),
+                                ErrorCause.REQUEST_ACCESS_TO_ROOM_EXCEPTION.getWireValue(),
                                 e.getLocalizedMessage(),
                                 null
                         )
