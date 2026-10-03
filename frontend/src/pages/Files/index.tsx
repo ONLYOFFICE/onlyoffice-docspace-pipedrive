@@ -1,7 +1,14 @@
-import React, { useContext, useEffect, useRef } from "react";
+import React, { useContext, useRef } from "react";
 
 import { AppContext, AppErrorType } from "@context/AppContext";
 import { Command, Modal } from "@pipedrive/app-extensions-sdk";
+import { DocSpace } from "@onlyoffice/docspace-react";
+import {
+  SDKInstance,
+  SDKMode,
+  TEditorOpenPayload,
+  TFrameConfig,
+} from "@onlyoffice/docspace-sdk-js";
 
 import { OnlyofficeSpinner } from "@components/spinner";
 import { DealSelector } from "@components/dealSelector/DealSelector";
@@ -12,21 +19,15 @@ import {
   sendFromDocspaceToPipedrive,
   sendFromPipedriveToDocspace,
 } from "@services/files";
-import { ensureDocspaceSdk } from "@utils/docspaceSdk";
 import { getDocspaceAccountToken } from "@services/user";
 import { AxiosError } from "axios";
 import { ErrorResponse } from "src/types/error";
-import { SDKInstance } from "@onlyoffice/docspace-sdk-js/dist/types/instance";
 
 const DOCSPACE_FRAME_ID = "docspace-frame";
 const DESTINATION_FOLDER_ID = 45930; // TODO: get actual destination folder id
 
 type SelectorMode = "deal" | "file";
 
-type DocspaceEditorOpenEvent = {
-  id: string;
-  action: string;
-};
 const FilesPage: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [selectorMode, setSelectorMode] = React.useState<SelectorMode | null>(
@@ -150,52 +151,37 @@ const FilesPage: React.FC = () => {
     }
   };
 
-  const onEditorOpen = async (event: DocspaceEditorOpenEvent) => {
+  const onEditorOpen = async (event: TEditorOpenPayload) => {
     await sdk.execute(Command.OPEN_MODAL, {
       type: Modal.CUSTOM_MODAL,
       action_id: process.env.EDITOR_ACTION_ID || "",
       data: {
-        fileId: event.id,
+        fileId: String(event.id),
         mode: event.action === "edit" ? "editor" : "viewer",
       },
     });
   };
 
-  useEffect(() => {
-    if (!settings?.url) {
-      return;
-    }
-
-    ensureDocspaceSdk(settings.url)
-      .then(() => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const docspaceSDK = (window as any).DocSpace?.SDK;
-        if (!docspaceSDK) return;
-
-        docspaceInstance.current = docspaceSDK.initPersonal({
-          frameId: DOCSPACE_FRAME_ID,
-          src: settings.url,
-          theme: "Base",
-          width: "100%",
-          height: "100%",
-          downloadToEvent: true,
-          getToken,
-          events: {
-            onAppReady,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, no-console
-            onAppError: (e: any) =>
-              // eslint-disable-next-line no-console
-              console.error("[ONLYOFFICE Files] Docspace SDK - onAppError:", e),
-            onDownload,
-            onEditorOpen,
-          },
-        });
-      })
-      .catch((e) =>
+  const getDocspaceConfig = (): TFrameConfig => ({
+    frameId: DOCSPACE_FRAME_ID,
+    src: settings?.url || "",
+    mode: SDKMode.Personal,
+    theme: "Base",
+    width: "100%",
+    height: "100%",
+    showMenu: true,
+    infoPanelVisible: true,
+    downloadToEvent: true,
+    getToken,
+    events: {
+      onAppReady,
+      onAppError: (e) =>
         // eslint-disable-next-line no-console
-        console.error("[ONLYOFFICE Files] Failed to load DocSpace SDK", e),
-      );
-  }, [settings?.url]); // eslint-disable-line react-hooks/exhaustive-deps
+        console.error("[ONLYOFFICE Files] Docspace SDK - onAppError:", e),
+      onDownload,
+      onEditorOpen,
+    },
+  });
 
   return (
     <div className="w-full h-full flex flex-col relative">
@@ -207,7 +193,14 @@ const FilesPage: React.FC = () => {
       <div
         className={`w-full h-full flex flex-col items-end ${loading ? "hidden" : ""}`}
       >
-        <div id={DOCSPACE_FRAME_ID} />
+        {settings?.url && (
+          <DocSpace
+            config={getDocspaceConfig()}
+            onSetDocspaceInstance={(instance) => {
+              docspaceInstance.current = instance;
+            }}
+          />
+        )}
       </div>
       {!loading && (
         <button
