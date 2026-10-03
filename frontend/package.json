@@ -85,7 +85,7 @@
   },
   "dependencies": {
     "@onlyoffice/docspace-react": "file:onlyoffice-docspace-react-2.1.0.tgz",
-    "@onlyoffice/docspace-sdk-js": "^2.0.0",
+    "@onlyoffice/docspace-sdk-js": "file:onlyoffice-docspace-sdk-js-2.2.0.tgz",
     "@pipedrive/app-extensions-sdk": "^0.16.0",
     "axios": "^1.7.3",
     "axios-retry": "^4.5.0",
