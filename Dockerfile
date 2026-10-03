@@ -6,7 +6,7 @@ ARG EDITOR_ACTION_ID
 ENV EDITOR_ACTION_ID=$EDITOR_ACTION_ID
 WORKDIR /usr/src/app
 COPY ./frontend/package*.json ./
-COPY ./frontend/onlyoffice-docspace-react*.tgz ./
+COPY ./frontend/onlyoffice-docspace-*.tgz ./
 RUN npm install
 COPY frontend .
 RUN npm run build

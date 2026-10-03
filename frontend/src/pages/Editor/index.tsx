@@ -22,7 +22,7 @@ import { getLocaleForDocspace } from "@utils/locale";
 import { ensureDocspaceSdk } from "@utils/docspaceSdk";
 import React, { useContext, useEffect, useState } from "react";
 import i18next from "i18next";
-import { TFrameConfig } from "@onlyoffice/docspace-sdk-js/dist/types/types";
+import type { TFrameConfig } from "@onlyoffice/docspace-sdk-js";
 import { getDocspaceAccountToken } from "@services/user";
 import { useLocation } from "react-router-dom";
 import { OnlyofficeDocspaceLogin } from "@components/docspaceLogin";
