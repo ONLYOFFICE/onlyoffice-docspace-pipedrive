@@ -20,6 +20,7 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import i18next from "i18next";
 import { useTranslation } from "react-i18next";
 import { Color, Command, Modal } from "@pipedrive/app-extensions-sdk";
+import { DocSpace } from "@onlyoffice/docspace-react";
 import type {
   SDKInstance,
   TEditorOpenPayload,
@@ -37,7 +38,6 @@ import { getCurrentURL, stripTrailingSlash } from "@utils/url";
 import { OnlyofficeSpinner } from "@components/spinner";
 
 import { getLocaleForDocspace } from "@utils/locale";
-import { ensureDocspaceSdk } from "@utils/docspaceSdk";
 import {
   DropdownButtonColor,
   OnlyofficeDropdownButton,
@@ -330,6 +330,7 @@ const RoomPage: React.FC = () => {
   const getRoomDocspaceConfig = () => {
     const config = {
       frameId: DOCSPACE_FRAME_ID,
+      src: settings?.url,
       mode: "manager",
       width: "100%",
       height: "100%",
@@ -372,32 +373,6 @@ const RoomPage: React.FC = () => {
       });
       return createRoomOptions;
     }, new Array<DropdownButtonOptions>());
-
-  useEffect(() => {
-    if (!settings?.url) {
-      return;
-    }
-
-    ensureDocspaceSdk(settings.url)
-      .then(() => {
-        if (loadDocspace && docspaceAuthorized) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const docspaceSDK = (window as any).DocSpace?.SDK;
-          if (!docspaceSDK) return;
-
-          docspaceInstance.current?.destroyFrame();
-
-          const config = getRoomDocspaceConfig();
-          config.src = settings?.url;
-
-          docspaceInstance.current = docspaceSDK.init(config);
-        }
-      })
-      .catch((e) =>
-        // eslint-disable-next-line no-console
-        console.error("[ONLYOFFICE AIChat] Failed to load DocSpace SDK", e),
-      );
-  }, [loadDocspace, settings?.url, room?.id, docspaceAuthorized]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -446,7 +421,12 @@ const RoomPage: React.FC = () => {
             ${!showDocspaceWindow ? "hidden" : ""}
           `}
         >
-          <div id={DOCSPACE_FRAME_ID} />
+          <DocSpace
+            config={getRoomDocspaceConfig()}
+            onSetDocspaceInstance={(instance) => {
+              docspaceInstance.current = instance;
+            }}
+          />
           <div className="pr-4">
             <OnlyofficeButton
               text={t("button.open-in-docspace", "Open in DocSpace")}
