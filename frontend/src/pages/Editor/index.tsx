@@ -19,10 +19,10 @@
 import { AppContext, AppErrorType } from "@context/AppContext";
 import { Command } from "@pipedrive/app-extensions-sdk";
 import { getLocaleForDocspace } from "@utils/locale";
-import { ensureDocspaceSdk } from "@utils/docspaceSdk";
 import React, { useContext, useEffect } from "react";
 import i18next from "i18next";
-import type { TFrameConfig } from "@onlyoffice/docspace-sdk-js";
+import { DocSpace } from "@onlyoffice/docspace-react";
+import type { TFrameConfig, TFrameMode } from "@onlyoffice/docspace-sdk-js";
 import { getDocspaceAccountToken } from "@services/user";
 import { AxiosError } from "axios";
 import { ErrorResponse } from "src/types/error";
@@ -39,7 +39,7 @@ const EditorPage: React.FC = () => {
 
   const data = JSON.parse(new URLSearchParams(search).get("data") || "{}");
   const fileId = data?.fileId || "";
-  const mode = data?.mode || "editor";
+  const mode: TFrameMode = data?.mode || "editor";
 
   useEffect(() => {
     if (!sdk) return;
@@ -72,44 +72,28 @@ const EditorPage: React.FC = () => {
     }
   };
 
-  const getEditorDocspaceConfig = (id: string, frameMode: string) => {
-    const config = {
-      frameId: DOCSPACE_FRAME_ID,
-      mode: frameMode,
-      width: "100%",
-      height: "100%",
-      id,
-      theme: sdk.userSettings.theme === "dark" ? "Dark" : "Base",
-      editorGoBack: false,
-      locale: getLocaleForDocspace(i18next.language),
-      getToken,
-    } as unknown as TFrameConfig;
+  const getEditorDocspaceConfig = (): TFrameConfig => ({
+    frameId: DOCSPACE_FRAME_ID,
+    src: settings?.url || "",
+    mode,
+    width: "100%",
+    height: "100%",
+    id: fileId,
+    theme: sdk.userSettings.theme === "dark" ? "Dark" : "Base",
+    editorGoBack: false,
+    locale: getLocaleForDocspace(i18next.language),
+    getToken,
+  });
 
-    return config;
-  };
+  if (!settings?.url) {
+    return null;
+  }
 
-  useEffect(() => {
-    if (!settings?.url) {
-      return;
-    }
-
-    ensureDocspaceSdk(settings.url)
-      .then(() => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const docspaceSDK = (window as any).DocSpace?.SDK;
-        if (!docspaceSDK) return;
-
-        const config = getEditorDocspaceConfig(fileId, mode);
-        config.src = settings?.url;
-
-        docspaceSDK.init(config);
-      })
-      .catch((e) =>
-        // eslint-disable-next-line no-console
-        console.error("[ONLYOFFICE AIChat] Failed to load DocSpace SDK", e),
-      );
-  }, [settings?.url, fileId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  return <div id={DOCSPACE_FRAME_ID} />;
+  return (
+    <DocSpace
+      key={`${settings.url}-${fileId}-${mode}`}
+      config={getEditorDocspaceConfig()}
+    />
+  );
 };
 export default EditorPage;
