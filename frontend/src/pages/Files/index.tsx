@@ -24,8 +24,8 @@ import { AxiosError } from "axios";
 import { ErrorResponse } from "src/types/error";
 
 const DOCSPACE_FRAME_ID = "docspace-frame";
-const DESTINATION_FOLDER_ID = 45930; // TODO: get actual destination folder id
 const SEND_TO_PIPEDRIVE_ACTION = "send-to-pipedrive";
+const IMPORT_FROM_PIPEDRIVE_ACTION = "import-from-pipedrive";
 
 type SelectorMode = "deal" | "file";
 
@@ -35,6 +35,7 @@ const FilesPage: React.FC = () => {
     null,
   );
   const docpaceFileToSend = useRef<number | null>(null);
+  const docspaceDestinationFolder = useRef<number | null>(null);
   const docspaceInstance = useRef<SDKInstance | null>(null);
 
   const { sdk, settings, pipedriveToken, setAppError } = useContext(AppContext);
@@ -59,6 +60,12 @@ const FilesPage: React.FC = () => {
           },
         ],
       },
+      createMenu: [
+        {
+          key: IMPORT_FROM_PIPEDRIVE_ACTION,
+          label: "Import from Pipedrive",
+        },
+      ],
     });
   };
 
@@ -67,7 +74,17 @@ const FilesPage: React.FC = () => {
     type,
     item,
     items,
+    folderId,
   }: TCustomActionEvent) => {
+    if (action === IMPORT_FROM_PIPEDRIVE_ACTION && type === "create") {
+      if (folderId === undefined) return;
+
+      docspaceDestinationFolder.current = Number(folderId);
+
+      setSelectorMode("file");
+      return;
+    }
+
     if (action !== SEND_TO_PIPEDRIVE_ACTION || type !== "file") return;
 
     const file = (item ?? items?.[0]) as { id: number } | undefined;
@@ -111,17 +128,9 @@ const FilesPage: React.FC = () => {
         message: "Uploading file to DocSpace...",
       });
 
-      docspaceInstance.current?.getFolderInfo().then((folderInfo) => {
-        // eslint-disable-next-line no-console
-        console.log(
-          "[ONLYOFFICE Files] Docspace SDK - folderInfo:",
-          folderInfo,
-        ); // Wrong method for this mode
-      });
-
       await sendFromPipedriveToDocspace(pipedriveToken, {
         targetId: file.id,
-        destinationId: DESTINATION_FOLDER_ID,
+        destinationId: docspaceDestinationFolder.current!,
       });
 
       await sdk.execute(Command.SHOW_SNACKBAR, {
@@ -135,6 +144,7 @@ const FilesPage: React.FC = () => {
         message: "Could not upload file to DocSpace",
       });
     } finally {
+      docspaceDestinationFolder.current = null;
       setSelectorMode(null);
     }
   };
@@ -142,6 +152,7 @@ const FilesPage: React.FC = () => {
   const handleSelectorClose = () => {
     setSelectorMode(null);
     docpaceFileToSend.current = null;
+    docspaceDestinationFolder.current = null;
   };
 
   const getToken = async () => {
@@ -214,15 +225,6 @@ const FilesPage: React.FC = () => {
           />
         )}
       </div>
-      {!loading && (
-        <button
-          type="button"
-          onClick={() => setSelectorMode("file")}
-          className="absolute right-4 top-4 z-20 inline-flex h-9 items-center justify-center rounded bg-pipedrive-color-light-blue-600 px-4 text-sm font-semibold text-white shadow hover:bg-pipedrive-color-light-blue-700 focus:outline-none focus:ring-2 focus:ring-pipedrive-color-light-blue-200"
-        >
-          Import from Pipedrive
-        </button>
-      )}
       <DealSelector
         isOpen={selectorMode !== null}
         onClose={handleSelectorClose}
