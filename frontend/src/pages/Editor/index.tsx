@@ -21,7 +21,11 @@ import { Command } from "@pipedrive/app-extensions-sdk";
 import { getLocaleForDocspace } from "@utils/locale";
 import React, { useContext, useEffect, useState } from "react";
 import i18next from "i18next";
-import type { TFrameConfig } from "@onlyoffice/docspace-sdk-js";
+import type {
+  TAuthError,
+  TFrameConfig,
+  TFrameEvents,
+} from "@onlyoffice/docspace-sdk-js";
 import { DocSpace } from "@onlyoffice/docspace-react";
 import { getDocspaceAccountToken } from "@services/user";
 import { useLocation } from "react-router-dom";
@@ -53,16 +57,22 @@ const EditorPage: React.FC = () => {
     });
   }, [sdk]);
 
+  const onAuthError = (error: TAuthError) => {
+    // eslint-disable-next-line no-console
+    console.error(error);
+
+    setDocspaceAuthorized(false);
+  };
+
   const getToken = async () => {
     try {
       return await getDocspaceAccountToken(pipedriveToken);
     } catch (e) {
       if (isPipedriveUnauthorized(e)) {
         setAppError(AppErrorType.TOKEN_ERROR);
-      } else {
-        setDocspaceAuthorized(false);
       }
-      return "";
+
+      throw e;
     }
   };
 
@@ -78,6 +88,9 @@ const EditorPage: React.FC = () => {
       editorGoBack: false,
       locale: getLocaleForDocspace(i18next.language),
       getToken,
+      events: {
+        onAuthError,
+      } as TFrameEvents,
     } as unknown as TFrameConfig;
 
     return config;

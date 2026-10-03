@@ -23,6 +23,7 @@ import { Color, Command, Modal } from "@pipedrive/app-extensions-sdk";
 import { DocSpace } from "@onlyoffice/docspace-react";
 import type {
   SDKInstance,
+  TAuthError,
   TEditorOpenPayload,
   TFrameConfig,
   TFrameEvents,
@@ -304,15 +305,18 @@ const RoomPage: React.FC = () => {
     }
   };
 
-  const onUnsuccessLogin = () => {
-    setDocspaceAuthorized(false);
-    sdk.execute(Command.RESIZE, { height: 560 });
-    setLoading(false);
-  };
-
   const onDocspaceAuthorized = () => {
     setLoading(true);
     setDocspaceAuthorized(true);
+  };
+
+  const onAuthError = (error: TAuthError) => {
+    // eslint-disable-next-line no-console
+    console.error(error);
+
+    setDocspaceAuthorized(false);
+    sdk.execute(Command.RESIZE, { height: 560 });
+    setLoading(false);
   };
 
   const getToken = async () => {
@@ -321,10 +325,9 @@ const RoomPage: React.FC = () => {
     } catch (e) {
       if (isPipedriveUnauthorized(e)) {
         setAppError(AppErrorType.TOKEN_ERROR);
-      } else {
-        onUnsuccessLogin();
       }
-      return "";
+
+      throw e;
     }
   };
 
@@ -345,6 +348,7 @@ const RoomPage: React.FC = () => {
         onNoAccess,
         onNotFound,
         onEditorOpen,
+        onAuthError,
       } as TFrameEvents,
     } as unknown as TFrameConfig;
 
