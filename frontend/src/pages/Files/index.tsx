@@ -6,6 +6,7 @@ import { DocSpace } from "@onlyoffice/docspace-react";
 import {
   SDKInstance,
   SDKMode,
+  TCustomActionEvent,
   TEditorOpenPayload,
   TFrameConfig,
 } from "@onlyoffice/docspace-sdk-js";
@@ -14,7 +15,6 @@ import { OnlyofficeSpinner } from "@components/spinner";
 import { DealSelector } from "@components/dealSelector/DealSelector";
 
 import { Deal, DealFile } from "src/types/deal";
-import { getFileIdFromDownloadUrl } from "@utils/url";
 import {
   sendFromDocspaceToPipedrive,
   sendFromPipedriveToDocspace,
@@ -25,6 +25,7 @@ import { ErrorResponse } from "src/types/error";
 
 const DOCSPACE_FRAME_ID = "docspace-frame";
 const DESTINATION_FOLDER_ID = 45930; // TODO: get actual destination folder id
+const SEND_TO_PIPEDRIVE_ACTION = "send-to-pipedrive";
 
 type SelectorMode = "deal" | "file";
 
@@ -48,19 +49,31 @@ const FilesPage: React.FC = () => {
     console.log("[ONLYOFFICE Files] Docspace SDK - onAppReady");
     setLoading(false);
 
-    // const fileActions = [
-    //   {
-    //     key: "send-to-nextcloud",
-    //     label: "Send to Pipedrive",
-    //     icon: "",
-    //   },
-    // ];
-
-    // instance.setCustomActions({ contextMenu: { file: fileActions } }); // TODO: add context menu actions when supported by the SDK
+    docspaceInstance.current?.setCustomActions({
+      contextMenu: {
+        file: [
+          {
+            key: SEND_TO_PIPEDRIVE_ACTION,
+            label: "Send to Pipedrive",
+            requireSecurity: ["Download"],
+          },
+        ],
+      },
+    });
   };
 
-  const onDownload = (file: string) => {
-    docpaceFileToSend.current = getFileIdFromDownloadUrl(file);
+  const onCustomAction = ({
+    action,
+    type,
+    item,
+    items,
+  }: TCustomActionEvent) => {
+    if (action !== SEND_TO_PIPEDRIVE_ACTION || type !== "file") return;
+
+    const file = (item ?? items?.[0]) as { id: number } | undefined;
+    if (!file) return;
+
+    docpaceFileToSend.current = file.id;
 
     setSelectorMode("deal");
   };
@@ -171,14 +184,13 @@ const FilesPage: React.FC = () => {
     height: "100%",
     showMenu: true,
     infoPanelVisible: true,
-    downloadToEvent: true,
     getToken,
     events: {
       onAppReady,
       onAppError: (e) =>
         // eslint-disable-next-line no-console
         console.error("[ONLYOFFICE Files] Docspace SDK - onAppError:", e),
-      onDownload,
+      onCustomAction,
       onEditorOpen,
     },
   });
