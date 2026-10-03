@@ -166,7 +166,8 @@ const RoomPage: React.FC = () => {
       action_id: process.env.EDITOR_ACTION_ID || "",
       data: {
         fileId: String(event.id),
-        mode: event.action === "edit" ? "editor" : "viewer",
+        // DocSpace omits action for a freshly created document
+        mode: !event.action || event.action === "edit" ? "editor" : "viewer",
       },
     });
   };
