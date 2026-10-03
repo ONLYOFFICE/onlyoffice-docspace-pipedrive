@@ -20,10 +20,13 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import i18next from "i18next";
 import { useTranslation } from "react-i18next";
 import { Color, Command, Modal } from "@pipedrive/app-extensions-sdk";
-import {
+import type {
+  SDKInstance,
+  TEditorOpenPayload,
   TFrameConfig,
   TFrameEvents,
-} from "@onlyoffice/docspace-sdk-js/dist/types/types";
+  TRoomInfo,
+} from "@onlyoffice/docspace-sdk-js";
 
 import { AppContext, AppErrorType } from "@context/AppContext";
 
@@ -40,7 +43,6 @@ import {
   OnlyofficeDropdownButton,
 } from "@components/dropdownButton";
 import { DropdownButtonOptions } from "@components/dropdownButton/DropdownButton";
-import { SDKInstance } from "@onlyoffice/docspace-sdk-js/dist/types/instance";
 import { DocspaceUser } from "src/types/docspace";
 import { RoomResponse } from "src/types/room";
 import { OnlyofficeButton } from "@components/button";
@@ -50,10 +52,6 @@ import { isPipedriveUnauthorized } from "@utils/error";
 
 const DOCSPACE_FRAME_ID = "docspace-frame";
 
-type DocspaceEditorOpenEvent = {
-  id: string;
-  action: string;
-};
 const DOCSPACE_ROOM_TYPES = [
   {
     id: 6,
@@ -162,12 +160,12 @@ const RoomPage: React.FC = () => {
     sdk.execute(Command.RESIZE, { height: 350 });
   };
 
-  const onEditorOpen = async (event: DocspaceEditorOpenEvent) => {
+  const onEditorOpen = async (event: TEditorOpenPayload) => {
     await sdk.execute(Command.OPEN_MODAL, {
       type: Modal.CUSTOM_MODAL,
       action_id: process.env.EDITOR_ACTION_ID || "",
       data: {
-        fileId: event.id,
+        fileId: String(event.id),
         mode: event.action === "edit" ? "editor" : "viewer",
       },
     });
@@ -254,15 +252,11 @@ const RoomPage: React.FC = () => {
       setCreating(true);
 
       docspaceInstance.current
-        .createRoom(
-          room.title,
-          // @ts-expect-error Error in docspace-sdk-js types
-          Number(roomType),
-          undefined,
-          ["Pipedrive Integration"],
-        )
+        .createRoom(room.title, Number(roomType), {
+          tags: ["Pipedrive Integration"],
+        })
         .then(async (data) => {
-          const docspaceRoom = data as { id: string; status: number };
+          const docspaceRoom = data as TRoomInfo & { status?: number };
 
           if (docspaceRoom.status && docspaceRoom.status !== 200) {
             let message = t(
@@ -297,9 +291,11 @@ const RoomPage: React.FC = () => {
             ),
           });
 
-          setRoom({ ...room, id: docspaceRoom.id } as RoomResponse);
+          const docspaceRoomId = String(docspaceRoom.id);
+
+          setRoom({ ...room, id: docspaceRoomId } as RoomResponse);
           setLoading(true);
-          saveRoom(docspaceRoom.id);
+          saveRoom(docspaceRoomId);
         })
         .finally(() => {
           setCreating(false);
