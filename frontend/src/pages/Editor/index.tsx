@@ -19,10 +19,10 @@
 import { AppContext, AppErrorType } from "@context/AppContext";
 import { Command } from "@pipedrive/app-extensions-sdk";
 import { getLocaleForDocspace } from "@utils/locale";
-import { ensureDocspaceSdk } from "@utils/docspaceSdk";
 import React, { useContext, useEffect, useState } from "react";
 import i18next from "i18next";
 import type { TFrameConfig } from "@onlyoffice/docspace-sdk-js";
+import { DocSpace } from "@onlyoffice/docspace-react";
 import { getDocspaceAccountToken } from "@services/user";
 import { useLocation } from "react-router-dom";
 import { OnlyofficeDocspaceLogin } from "@components/docspaceLogin";
@@ -69,6 +69,7 @@ const EditorPage: React.FC = () => {
   const getEditorDocspaceConfig = (id: string, frameMode: string) => {
     const config = {
       frameId: DOCSPACE_FRAME_ID,
+      src: settings?.url,
       mode: frameMode,
       width: "100%",
       height: "100%",
@@ -82,28 +83,6 @@ const EditorPage: React.FC = () => {
     return config;
   };
 
-  useEffect(() => {
-    if (!settings?.url) {
-      return;
-    }
-
-    ensureDocspaceSdk(settings.url)
-      .then(() => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const docspaceSDK = (window as any).DocSpace?.SDK;
-        if (!docspaceSDK) return;
-
-        const config = getEditorDocspaceConfig(fileId, mode);
-        config.src = settings?.url;
-
-        docspaceSDK.init(config);
-      })
-      .catch((e) =>
-        // eslint-disable-next-line no-console
-        console.error("[ONLYOFFICE AIChat] Failed to load DocSpace SDK", e),
-      );
-  }, [settings?.url, fileId, mode, docspaceAuthorized]); // eslint-disable-line react-hooks/exhaustive-deps
-
   return (
     <>
       {!docspaceAuthorized && (
@@ -111,9 +90,12 @@ const EditorPage: React.FC = () => {
           onSuccess={() => setDocspaceAuthorized(true)}
         />
       )}
-      {docspaceAuthorized && (
+      {settings?.url && docspaceAuthorized && (
         <div className="w-full h-full flex flex-col items-end">
-          <div id={DOCSPACE_FRAME_ID} />
+          <DocSpace
+            key={`${fileId}-${mode}`}
+            config={getEditorDocspaceConfig(fileId, mode)}
+          />
         </div>
       )}
     </>
